@@ -56,7 +56,7 @@ Ainda não há instruções para o uso do projeto.
 	```bash
 	git commit -m "Descrição curta do que foi realizado"
 	```
-5. Digite no git bash, novamente substituindo seu nome:
+4. Digite no git bash, novamente substituindo seu nome:
 	```bash
 	git push -u origin nomeSobrenome
 	```
