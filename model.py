@@ -8,12 +8,12 @@ from scipy.signal import convolve2d
 class GameOfLifeModel(Model):
     def __init__(self, width=10, height=10, alive_fraction=0.2):
         super().__init__()
-        # Initialize the property layer for cell states
+        # Inicializa a camada de propriedades para os estados das células
         self.cell_layer = PropertyLayer("cells", width, height, False, dtype=bool)
-        # Randomly set cells to alive
+        # Define aleatoriamente células como vivas
         self.cell_layer.data = np.random.choice([True, False], size=(width, height), p=[alive_fraction, 1 - alive_fraction])
 
-        # Metrics and datacollector
+        # Métricas e coletor de dados
         self.cells = width * height
         self.alive_count = 0
         self.alive_fraction = 0
@@ -24,28 +24,28 @@ class GameOfLifeModel(Model):
         self.datacollector.collect(self)
 
     def step(self):
-        # Define a kernel for counting neighbors. The kernel has 1s around the center cell (which is 0).
-        # This setup allows us to count the live neighbors of each cell when we apply convolution.
+        # Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
+        # Essa configuração nos permite contar os vizinhos vivos de cada célula ao aplicar a convolução.
         kernel = np.array([[1, 1, 1],
                            [1, 0, 1],
                            [1, 1, 1]])
 
-        # Count neighbors using convolution.
-        # convolve2d applies the kernel to each cell of the grid, summing up the values of neighbors.
-        # boundary="wrap" ensures that the grid wraps around, simulating a toroidal surface.
+        # Conta os vizinhos usando convolução.
+        # convolve2d aplica o kernel a cada célula da grade, somando os valores dos vizinhos.
+        # boundary="wrap" garante que a grade envolva as bordas, simulando uma superfície toroidal.
         neighbor_count = convolve2d(self.cell_layer.data, kernel, mode="same", boundary="wrap")
 
-        # Apply Game of Life rules:
-        # 1. A live cell with 2 or 3 live neighbors survives, otherwise it dies.
-        # 2. A dead cell with exactly 3 live neighbors becomes alive.
-        # These rules are implemented using logical operations on the grid.
+        # Aplica as regras do Jogo da Vida:
+        # 1. Uma célula viva com 2 ou 3 vizinhos vivos sobrevive, caso contrário, morre.
+        # 2. Uma célula morta com exatamente 3 vizinhos vivos torna-se viva.
+        # Essas regras são implementadas usando operações lógicas na grade.
         self.cell_layer.data = np.logical_or(
             np.logical_and(self.cell_layer.data, np.logical_or(neighbor_count == 2, neighbor_count == 3)),
-            # Rule for live cells
-            np.logical_and(~self.cell_layer.data, neighbor_count == 3)  # Rule for dead cells
+            # Regra para células vivas
+            np.logical_and(~self.cell_layer.data, neighbor_count == 3)  # Regra para células mortas
         )
 
-        # Metrics
+        # Métricas
         self.alive_count = np.sum(self.cell_layer.data)
         self.alive_fraction = self.alive_count / self.cells
         self.datacollector.collect(self)
