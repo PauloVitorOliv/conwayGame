@@ -48,7 +48,15 @@ Ainda não há instruções para o uso do projeto.
 
 ### Atualizar suas mudanças
 1. Você só precisa fazer os passos acima uma vez, e toda vez que você editar o código e quiser fazer uma atualização concreta, deve fazer os passos abaixo:
-2. Digite no git bash, novamente substituindo seu nome:
+2. Digite no git bash o comando abaixo com o nome dos arquivos que você editou (se mais de um, separe-os por espaço):
+	```bash
+	git add nomeArquivo.py
+	```
+3. Digite novamente no bash um commit com um resumo do que você fez:
+	```bash
+	git commit -m "Descrição curta do que foi realizado"
+	```
+5. Digite no git bash, novamente substituindo seu nome:
 	```bash
 	git push -u origin nomeSobrenome
 	```
