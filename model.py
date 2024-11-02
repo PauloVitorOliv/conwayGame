@@ -10,8 +10,6 @@ class GameOfLifeModel(Model):
         super().__init__()
         # Inicializa a camada de propriedades para os estados das células
         self.cell_layer = PropertyLayer("cells", width, height, False, dtype=bool)
-        # Define aleatoriamente células como vivas
-        self.cell_layer.data = np.random.choice([True, False], size=(width, height), p=[alive_fraction, 1 - alive_fraction])
 
         # Métricas e coletor de dados
         self.cells = width * height
@@ -59,4 +57,9 @@ class GameOfLifeModel(Model):
         return self.cell_layer.data
     
     def dims(self):
-        return [self.width, self.height]
+        return [self.height, self.width]
+    
+    def randomize(self,aliveFraction):
+        self.alive_fraction = aliveFraction
+        # Define aleatoriamente células como vivas
+        self.cell_layer.data = np.random.choice([True, False], size=(self.width, self.height), p=[self.alive_fraction, 1 - self.alive_fraction])
