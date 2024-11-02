@@ -22,6 +22,11 @@ class GameOfLifeModel(Model):
                              "Fraction alive": "alive_fraction"}
         )
         self.datacollector.collect(self)
+        
+        # Aditional Data
+        self.iteration = 0
+        self.width = width
+        self.height = height
 
     def step(self):
         # Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
@@ -49,3 +54,9 @@ class GameOfLifeModel(Model):
         self.alive_count = np.sum(self.cell_layer.data)
         self.alive_fraction = self.alive_count / self.cells
         self.datacollector.collect(self)
+
+    def exportData(self):
+        return self.cell_layer.data
+    
+    def dims(self):
+        return [self.width, self.height]
