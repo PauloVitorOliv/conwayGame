@@ -3,6 +3,7 @@ import pygame
 import model
 
 # Constantes Globais
+TESTE = 358318
 FPS = 60
 DEAD, ALIVE = False, True #Estados de uma célula: vivo ou morto
 BACKGROUND_COLOR = (32,32,32) #Cor de fundo da simulação
