@@ -37,6 +37,7 @@ Ainda não há instruções para o uso do projeto.
 2. E também:
 	```bash
 	pip install scipy
+	pip install pygame
 	```
 
 ### Criar seu próprio Branch
