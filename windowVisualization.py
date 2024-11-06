@@ -1,6 +1,6 @@
 # Dependências 
 import pygame
-import model
+import model as conwayModel
 
 # Constantes Globais
 FPS = 60
@@ -13,6 +13,9 @@ DEAD_COLOR = (255,64,64) #Cor de uma célula morta
 
 # Variáveis Globais
 boardPaused = False
+model = None #Instância do modelo mesa
+board = None #Instância de Board
+screen = None #Instância de Screen
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
 
@@ -44,6 +47,7 @@ ACTIVATE_FIGURE = True
 CONFIG_BUTTONS = range(13,16)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,15)
+CLICKABLE_BUTTONS = range(1,15)
 PAUSE_BUTTON = 15
 
 # Tipos de cursor
@@ -69,14 +73,15 @@ IMG_FIGURA12 = pygame.image.load("images/square.png")
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
+IMG_BORDER = pygame.image.load("images/border.png")
 
 # Classes
 '''
 Classe Tile -> A menor unidade do jogo da vida de conway
-	state: representa se a célula está viva ou morta
+	_state: representa se a célula está viva ou morta
 	selected: se o usuário está selecionando a célula no momento ou não
  
-	state(): obtém o estado da célula
+	state(): obtém o estado da célula (vivo/morto)
 	change(): muda o estado da célula (na interface gráfica)
 	live(): revive a célula (na interface gráfica)
 	die(): mata a célula (na interface gráfica)
@@ -102,73 +107,51 @@ class Tile:
 	def die(self):
 		self._state = DEAD
 
+'''
+Classe Board -> Possui um conjunto de tiles e uma instância de model, representa o tabuleiro do jogo
+	rows: quantidade de linhas do tabuleiro
+	cols: quantidade de colunas do tabuleiro
+	tiles: matriz de tiles, representa as unidades gráficas correspondentes ao jogo da vida.
+ 
+	boardDims(): retorna rows e cols, as dimensões do tabuleiro
+	update(): atualiza as casas do tabuleiro, o parâmetro step indica se deve apenas tornar o tabuleiro gráfico atualizado em relação ao do modelo ou primeiro atualizar o modelo e depois atualizar o tabuleiro gráfico
+'''
+
 class Board:
-	def __init__(self, game:model.GameOfLifeModel):
-		self.game = game
-		self.rows, self.cols = game.dims()
-		self.tiles = [[0]*self.cols for _ in range(self.rows)]
+	def __init__(self):
+		global model
+		self.rows, self.cols = model.dims()
+		self.tiles = [[0]*self.cols for _ in range(self.rows)] #Inicia uma matriz
 		for i in range(self.rows):
 			for j in range(self.cols):
-				self.tiles[i][j] = Tile()
+				self.tiles[i][j] = Tile() #Popula a matriz com tiles
   
 	def boardDims(self):
 		return [self.rows, self.cols]
 
 	def update(self, step = True):
-		global boardPaused
-		if boardPaused:
-			return
-		if step:
-			self.game.step()
+		global boardPaused, model
+		if step and not boardPaused: #Atualizações de estado no modelo exigem o jogo despausado
+			model.step()
 		for i in range(self.rows):
-			for j in range(self.cols): #O modelo considera em cell_layer.data[coluna][linha], mas na visualização, consideramos [linha][coluna], por isso [i][j] vs [j][i]
-				if self.tiles[i][j].state() != self.game.cell_layer.data[j][i]:
+			for j in range(self.cols): #O modelo considera em cell_layer.data[coluna][linha], mas na visualização, consideramos [linha][coluna], por isso é frequente o uso de [i][j] vs [j][i]
+				if self.tiles[i][j].state() != model.cell_layer.data[j][i]:
 					self.tiles[i][j].change()
-	 
-class Screen:
-	def __init__(self, board:Board, width, height):
-		self.board = board
-		self.buttons = []
-		self.update(width,height)
 
-	def size(self):
-		return [self.width, self.height]
+'''
+Classe Button -> Informações necessárias para representação de um botão na interface gráfica
 
-	def update(self, width, height):
-		self.width = width
-		self.height = height
-		self.scaling = int(min((width * (12/16))/self.board.cols , (height * (7/9)/self.board.rows)))
-
-		self.expectedWidth = width*(12/16)
-		self.expectedHeight = height*(7/9)
-		self.expectedOriginX = int(width/16)
-		self.expectedOriginY = int(height/9)
-  
-		self.actualWidth = self.scaling*self.board.cols
-		self.actualHeight = self.scaling*self.board.rows
-		self.originX = int(width/16 + (self.expectedWidth-self.actualWidth)/2)
-		self.originY = int(height/9 + (self.expectedHeight-self.actualHeight)/2)
-		self.endX = self.originX + self.actualWidth
-		self.endY = self.originY + self.actualHeight
-
-		for bt in self.buttons:
-			bt.updatePos(self)
-
-	def updateBoard(self, newBoard):
-		self.board = newBoard
-		self.update(self.width,self.height)
-  
-	def addButton(self, newButton):
-		self.buttons.append(newButton)
+'''
 
 class Button:
-	def __init__(self, screen:Screen, act, slot, img):
+	def __init__(self, act, slot, img):
 		self.action = act
 		self.slot = slot
 		self.image = img
-		self.updatePos(screen)
+		self.selected = False
+		self.updatePos()
 
-	def updatePos(self, screen:Screen):
+	def updatePos(self):
 		if self.action in FIGURE_BUTTONS:
 			self.size = int(screen.actualHeight/7)
 			slotRow = (self.slot-1)//2
@@ -181,8 +164,53 @@ class Button:
 			self.x = screen.originX + slotCol * int(self.size * 1.2)
 			self.y = screen.originY - int(self.size * (1.2))
 
+'''
+Classe Screen: A classe que gerencia o display do tabuleiro e de todas as outras informações necessárias.
+	board: instância da classe Board que representa o tabuleiro
+	buttons: conjunto de instâncias da classe Button, representando os botões da interface
+'''
+
+class Screen:
+	def __init__(self, width, height):
+		self.buttons = []
+		self.update(width,height)
+
+	def size(self):
+		return [self.width, self.height]
+
+	def update(self, width, height):
+		global board
+		self.width = width
+		self.height = height
+		self.scaling = int(min((width * (12/16))/board.cols , (height * (7/9)/board.rows)))
+
+		self.expectedWidth = width*(12/16)
+		self.expectedHeight = height*(7/9)
+		self.expectedOriginX = int(width/16)
+		self.expectedOriginY = int(height/9)
+  
+		self.actualWidth = self.scaling*board.cols
+		self.actualHeight = self.scaling*board.rows
+		self.originX = int(width/16 + (self.expectedWidth-self.actualWidth)/2)
+		self.originY = int(height/9 + (self.expectedHeight-self.actualHeight)/2)
+		self.endX = self.originX + self.actualWidth
+		self.endY = self.originY + self.actualHeight
+
+		for bt in self.buttons:
+			bt.updatePos(self)
+
+	def updateBoard(self, newBoard):
+		global board
+		board = newBoard
+		self.update(self.width,self.height)
+  
+	def addButton(self, newButton):
+		self.buttons.append(newButton)
+
 # Funções
-def drawCurrentGame(board:Board, screen:Screen, surface):
+def drawCurrentGame(surface):
+	global board, screen
+
 	gridSize = board.boardDims()
 	tileSize = screen.scaling
 	tileBorder = screen.scaling/16
@@ -206,24 +234,31 @@ def drawCurrentGame(board:Board, screen:Screen, surface):
 
 	for bt in screen.buttons:
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
+		if bt.selected:
+			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
 
 def launchEventOnce(type):
-	global boardPaused
+	global boardPaused, screen
 	if type == PAUSE_TIME:
 		boardPaused = not boardPaused
+		screen.buttons[PAUSE_TIME-1].selected = boardPaused
 
-def paintTile(board:Board,i,j,type):
+def paintTile(i,j,type):
+	global board, model
 	i %= board.rows; j %= board.cols
 	if type == REVIVE_CELL:
 		board.tiles[i][j].live()
-		board.game.cell_layer.data[j][i] = True
+		model.cell_layer.data[j][i] = True
 	elif type == KILL_CELL:
 		board.tiles[i][j].die()
-		board.game.cell_layer.data[j][i] = False
+		model.cell_layer.data[j][i] = False
 
-def setTileStates(board:Board,i,j,type,setmode):
+def setTileStates(i,j,type,setmode):
+	global model, board
 	tilist = []
-	if type == SUMMON_SQUARE:
+	if type in LIFE_BUTTONS:
+		tilist += [[i,j]]
+	elif type == SUMMON_SQUARE:
 		tilist += [[i,j],[(i+1)%board.rows,j],[i,(j+1)%board.cols],[(i+1)%board.rows,(j+1)%board.cols]]
 	elif type == SUMMON_BLINKER:
 		tilist +=[[i,j], [(i+1)%board.rows, j], [(i+2)%board.rows, j]]
@@ -243,8 +278,8 @@ def setTileStates(board:Board,i,j,type,setmode):
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
 
 	'''<FIGURAS>'''
-	#Adicione elif para cada nova figura. tilist é a lista das coordenadas dos pontos afetados, sendo [i,j] o canto superior esquerdo. Lembre-se de tomar coordenadas diferentes de [i,j] com o módulo, igual usado acima
-	
+	#Adicione elif para cada nova figura. tilist é a lista das coordenadas dos pontos afetados, sendo [i,j] o canto	superior esquerdo. Lembre-se de tomar coordenadas diferentes de [i,j] com o módulo, igual usado acima
+ 
 	if setmode == False:
 		for tile in tilist:
 			board.tiles[tile[0]][tile[1]].selected = True
@@ -252,14 +287,15 @@ def setTileStates(board:Board,i,j,type,setmode):
 		for tile in tilist:
 			board.tiles[tile[0]][tile[1]].selected = False
 			board.tiles[tile[0]][tile[1]].live()
-			board.game.cell_layer.data[tile[1]][tile[0]] = True
+			model.cell_layer.data[tile[1]][tile[0]] = True
 
-def runGame(board:Board, screen:Screen):
+def runGame():
+	global screen
 	pygame.init()
-	gameRunning = True; updateCounter = 30; microTime = updateCounter
+	gameRunning = True; updateCounter = 1; microTime = updateCounter
  
 	#Variáveis do cursor
-	grabbed = False; grabType = 0; cursorPaintMode = 0
+	grabbed = False; grabType = 999; cursorPaintMode = 0
  
 	pySurface = pygame.display.set_mode(screen.size(),pygame.RESIZABLE)
 	timer = pygame.time.Clock()
@@ -293,75 +329,99 @@ def runGame(board:Board, screen:Screen):
 		validTile = (tileRow < board.rows and tileCol < board.cols and tileRow >= 0 and tileCol >= 0)
 
 		if validTile and grabbed:
-			setTileStates(board,tileRow,tileCol,grabType,PREVIEW_FIGURE)
+			setTileStates(tileRow,tileCol,grabType,PREVIEW_FIGURE)
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				gameRunning = False
+    
 			elif event.type == pygame.VIDEORESIZE:
 				screen.update(event.w,event.h)
+    
 			elif event.type == pygame.WINDOWMAXIMIZED:
 				w, h = pygame.display.get_window_size()
 				screen.update(w,h)
+    
 			elif event.type == pygame.WINDOWMINIMIZED:
 				w, h = pygame.display.get_window_size()
 				screen.update(w,h)
-			elif event.type == pygame.MOUSEBUTTONDOWN:
+    
+			elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
 				for bt in screen.buttons:
 					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 						if bt.action < PAUSE_TIME:
 							if grabbed and grabType == bt.action:
 								grabbed = False
-							else:	
+								screen.buttons[grabType-1].selected = False
+							else:
+								if grabType in CLICKABLE_BUTTONS:
+									screen.buttons[grabType-1].selected = False
 								grabbed = True
 								grabType = bt.action
+								screen.buttons[grabType-1].selected = True
 							break
 						else:
 							launchEventOnce(bt.action)
 				if validTile and grabbed:
 					if grabType in FIGURE_BUTTONS:
-						setTileStates(board,tileRow,tileCol,grabType,ACTIVATE_FIGURE)
+						setTileStates(tileRow,tileCol,grabType,ACTIVATE_FIGURE)
 					elif grabType in LIFE_BUTTONS:
 						cursorPaintMode = grabType
+      
 			elif event.type == pygame.MOUSEBUTTONUP:
 				if grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
+     
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_p:
 					launchEventOnce(PAUSE_TIME)
+     
 				elif event.key == pygame.K_ESCAPE:
 					grabbed = False
+					if grabType < PAUSE_TIME:
+						screen.buttons[grabType-1].selected = False
+      
 				elif event.key == pygame.K_1:
 					if grabbed and grabType == REVIVE_CELL:
 						grabbed = False
+						screen.buttons[grabType-1].selected = False
 					else:
+						if grabType < PAUSE_TIME:
+							screen.buttons[grabType-1].selected = False
 						grabbed = True
 						grabType = REVIVE_CELL
+						screen.buttons[grabType-1].selected = True
+      
 				elif event.key == pygame.K_2:
 					if grabbed and grabType == KILL_CELL:
 						grabbed = False
+						screen.buttons[grabType-1].selected = False
 					else:
+						if grabType < PAUSE_TIME:
+							screen.buttons[grabType-1].selected = False
 						grabbed = True
 						grabType = KILL_CELL
+						screen.buttons[grabType-1].selected = True
 
 		#Modo de pintura: ativação de células
 		if validTile and cursorPaintMode in LIFE_BUTTONS:
-			paintTile(board,tileRow,tileCol,grabType)
+			paintTile(tileRow,tileCol,grabType)
 
 		pySurface.fill(BACKGROUND_COLOR)
-		drawCurrentGame(board, screen, pySurface)
+		drawCurrentGame(pySurface)
 		pygame.display.update()
 	pygame.quit()
 
-def generateConwayGame(isRandom = True):
+def generateConwayGame(isRandom = False):
 	# Tabuleiro de Exemplo:
-	myModel = model.GameOfLifeModel(width=60,height=35)
+	global model, board, screen
+	model = conwayModel.GameOfLifeModel(width=60,height=35)
 	if isRandom:
-		myModel.randomize(0.50)
+		model.randomize(0.50)
 
 	#Botões de Tabuleiro
-	myBoard = Board(myModel)
-	myScreen = Screen(myBoard,1280,720)
+	board = Board()
+	screen = Screen(1280,720)
 
 	#Botões de Figuras
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,1,IMG_SQUARE))
@@ -380,10 +440,10 @@ def generateConwayGame(isRandom = True):
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,12,IMG_SQUARE))
  
 	#Botões de matar e reviver células
-	myScreen.addButton(Button(myScreen,REVIVE_CELL,13,IMG_ALIVECELL))
-	myScreen.addButton(Button(myScreen,KILL_CELL,14,IMG_DEADCELL))
-	myScreen.addButton(Button(myScreen,PAUSE_TIME,15,IMG_PAUSE))
+	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
+	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
+	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 
-	runGame(myBoard,myScreen)
+	runGame()
 
-generateConwayGame(isRandom=True)
+generateConwayGame(isRandom=False)
