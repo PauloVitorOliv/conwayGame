@@ -19,11 +19,11 @@ SUMMON_BLINKER = 2
 SUMMON_GLIDER = 3 
 SUMMON_LWSS = 4
 SUMMON_BEACON = 5
+SUMMON_MWSS = 6
+SUMMON_TOAD = 7 
+SUMMON_BEEHIVE = 8 
+SUMMON_TUB = 9
 '''<FIGURAS>'''
-SUMMON_FIGURA6 = 6
-SUMMON_FIGURA7 = 7 
-SUMMON_FIGURA8 = 8 
-SUMMON_FIGURA9 = 9
 SUMMON_FIGURA10 = 10
 SUMMON_FIGURA11 = 11
 SUMMON_FIGURA12 = 12 
@@ -34,11 +34,11 @@ IMG_BLINKER = pygame.image.load("images/blinker.png")
 IMG_GLIDER = pygame.image.load("images/glider.png") 
 IMG_LWSS = pygame.image.load("images/lwss.png") 
 IMG_BEACON = pygame.image.load("images/beacon.png")
+IMG_MWSS = pygame.image.load("images/mwss.png")
+IMG_TOAD = pygame.image.load("images/toad.png")
+IMG_BEEHIVE = pygame.image.load("images/beehive.png") 
+IMG_TUB = pygame.image.load("images/tub.png")
 '''<FIGURAS>'''
-IMG_FIGURA6 = pygame.image.load("images/square.png")
-IMG_FIGURA7 = pygame.image.load("images/square.png")
-IMG_FIGURA8 = pygame.image.load("images/square.png") 
-IMG_FIGURA9 = pygame.image.load("images/square.png")
 IMG_FIGURA10 = pygame.image.load("images/square.png")
 IMG_FIGURA11 = pygame.image.load("images/square.png")
 IMG_FIGURA12 = pygame.image.load("images/square.png")
@@ -183,6 +183,15 @@ def setTileStates(board:Board,i,j,type,setmode):
 		tilist += [[i,j], [(i+2)%board.rows, j], [(i+2)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+1)%board.cols], [(i-1)%board.rows, (j+2)%board.cols], [(i-1)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+4)%board.cols], [(i), (j+4)%board.cols], [(i+1)%board.rows, (j+4)%board.cols]]
 	elif type == SUMMON_BEACON:
 		tilist += [[i,j],[(i+1)%board.rows,j],[i,(j+1)%board.cols],[(i+1)%board.rows,(j+1)%board.cols], [(i+2)%board.rows,(j+2)%board.cols],[(i+3)%board.rows,(j+2)%board.cols],[(i+2)%board.rows,(j+3)%board.cols],[(i+3)%board.rows,(j+3)%board.cols]]
+	elif type == SUMMON_MWSS:
+		tilist += [[i,j],[(i+2)%board.rows,j],[(i+3)%board.rows,(j+1)%board.cols],[(i+3)%board.rows,(j+2)%board.cols],[(i+3)%board.rows,(j+3)%board.cols],[(i+3)%board.rows,(j+4)%board.cols],[(i+3)%board.rows,(j+5)%board.cols],[(i+2)%board.rows,(j+5)%board.cols],[(i+1)%board.rows,(j+5)%board.cols],[i,(j+4)%board.cols],[(i-1)%board.rows,(j+2)%board.cols]]
+	elif type == SUMMON_TOAD:
+		tilist += [[i,j],[(i+1)%board.rows,j],[(i+2)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols],[(i+1)%board.rows,(j+3)%board.cols]]
+	elif type == SUMMON_BEEHIVE:
+		tilist [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1)%board.rows,(j-1)%board.cols],[(i-1)%board.rows,(j-2)%board.cols],[i,(j+2)%board.cols]]
+	elif type == SUMMON_TUB:
+		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
+
 	'''<FIGURAS>'''
 	#Adicione elif para cada nova figura. tilist é a lista das coordenadas dos pontos afetados, sendo [i,j] o canto superior esquerdo. Lembre-se de tomar coordenadas diferentes de [i,j] com o módulo, igual usado acima
 	
@@ -278,12 +287,12 @@ def generateConwayGame(isRandom = True):
 	myScreen.addButton(Button(myScreen,SUMMON_GLIDER,3,IMG_GLIDER))
 	myScreen.addButton(Button(myScreen,SUMMON_LWSS,4,IMG_LWSS))
 	myScreen.addButton(Button(myScreen,SUMMON_BEACON,5,IMG_BEACON))
+	myScreen.addButton(Button(myScreen,SUMMON_MWSS,6,IMG_MWSS))
+	myScreen.addButton(Button(myScreen,SUMMON_TOAD,7,IMG_TOAD))
+	myScreen.addButton(Button(myScreen,SUMMON_BEEHIVE,8,IMG_BEEHIVE))
+	myScreen.addButton(Button(myScreen,SUMMON_TUB,9,IMG_TUB))
 	'''<FIGURAS>'''
 	#Troque os nomes e códigos de ação de cada figura nova adicionada. Não altere o slot
-	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,6,IMG_SQUARE))
-	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,7,IMG_SQUARE))
-	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,8,IMG_SQUARE))
-	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,9,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,10,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,11,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,12,IMG_SQUARE))
