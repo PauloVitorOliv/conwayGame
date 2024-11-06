@@ -197,7 +197,7 @@ class Screen:
 		self.endY = self.originY + self.actualHeight
 
 		for bt in self.buttons:
-			bt.updatePos(self)
+			bt.updatePos()
 
 	def updateBoard(self, newBoard):
 		global board
@@ -290,7 +290,7 @@ def setTileStates(i,j,type,setmode):
 			model.cell_layer.data[tile[1]][tile[0]] = True
 
 def runGame():
-	global screen
+	global screen, board
 	pygame.init()
 	gameRunning = True; updateCounter = 1; microTime = updateCounter
  
