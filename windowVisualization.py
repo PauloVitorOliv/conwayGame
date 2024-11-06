@@ -11,9 +11,12 @@ ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
 
+# Variáveis Globais
+boardPaused = False
+
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
 
-# Constantes de Ação dos Botões: Uma para cada figura
+# Constantes de ação dos botões: Uma para cada figura
 SUMMON_SQUARE = 1
 SUMMON_BLINKER = 2
 SUMMON_GLIDER = 3 
@@ -28,7 +31,27 @@ SUMMON_FIGURA10 = 10
 SUMMON_FIGURA11 = 11
 SUMMON_FIGURA12 = 12 
 
-# Imagens: Uma para cada figura
+#Constantes de ação dos botões: gerais
+REVIVE_CELL = 13
+KILL_CELL = 14
+PAUSE_TIME = 15
+
+#Tipos de colocação de figura
+PREVIEW_FIGURE = False
+ACTIVATE_FIGURE = True
+
+# Tipos de botões
+CONFIG_BUTTONS = range(13,16)
+FIGURE_BUTTONS = range(1,13)
+LIFE_BUTTONS = range(13,15)
+PAUSE_BUTTON = 15
+
+# Tipos de cursor
+CURSOR_FREE = 0
+CURSOR_AIM = 1
+CURSOR_SELECTED = 2
+
+# Imagens: Uma para cada botão
 IMG_SQUARE = pygame.image.load("images/square.png")
 IMG_BLINKER = pygame.image.load("images/blinker.png") 
 IMG_GLIDER = pygame.image.load("images/glider.png") 
@@ -42,6 +65,10 @@ IMG_TUB = pygame.image.load("images/tub.png")
 IMG_FIGURA10 = pygame.image.load("images/square.png")
 IMG_FIGURA11 = pygame.image.load("images/square.png")
 IMG_FIGURA12 = pygame.image.load("images/square.png")
+
+IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
+IMG_DEADCELL = pygame.image.load("images/deadCell.png")
+IMG_PAUSE = pygame.image.load("images/pauseTime.png")
 
 # Classes
 '''
@@ -88,6 +115,9 @@ class Board:
 		return [self.rows, self.cols]
 
 	def update(self, step = True):
+		global boardPaused
+		if boardPaused:
+			return
 		if step:
 			self.game.step()
 		for i in range(self.rows):
@@ -139,11 +169,17 @@ class Button:
 		self.updatePos(screen)
 
 	def updatePos(self, screen:Screen):
-		self.size = int(screen.actualHeight/7)
-		slotRow = (self.slot-1) // 2
-		slotCol = (self.slot-1)%2
-		self.x = screen.endX + int(0.4 * self.size) + slotCol * int(self.size * 1.2)
-		self.y = screen.originY + slotRow * int(self.size * (1 + 1/6))
+		if self.action in FIGURE_BUTTONS:
+			self.size = int(screen.actualHeight/7)
+			slotRow = (self.slot-1)//2
+			slotCol = (self.slot-1)%2
+			self.x = screen.endX + int(0.4 * self.size) + slotCol * int(self.size * 1.2)
+			self.y = screen.originY + slotRow * int(self.size * (1 + 1/6))
+		elif self.action in CONFIG_BUTTONS:
+			self.size = int(screen.actualHeight/12)
+			slotCol = self.slot-13
+			self.x = screen.originX + slotCol * int(self.size * 1.2)
+			self.y = screen.originY - int(self.size * (1.2))
 
 # Funções
 def drawCurrentGame(board:Board, screen:Screen, surface):
@@ -170,7 +206,21 @@ def drawCurrentGame(board:Board, screen:Screen, surface):
 
 	for bt in screen.buttons:
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
-  
+
+def launchEventOnce(type):
+	global boardPaused
+	if type == PAUSE_TIME:
+		boardPaused = not boardPaused
+
+def paintTile(board:Board,i,j,type):
+	i %= board.rows; j %= board.cols
+	if type == REVIVE_CELL:
+		board.tiles[i][j].live()
+		board.game.cell_layer.data[j][i] = True
+	elif type == KILL_CELL:
+		board.tiles[i][j].die()
+		board.game.cell_layer.data[j][i] = False
+
 def setTileStates(board:Board,i,j,type,setmode):
 	tilist = []
 	if type == SUMMON_SQUARE:
@@ -206,8 +256,10 @@ def setTileStates(board:Board,i,j,type,setmode):
 
 def runGame(board:Board, screen:Screen):
 	pygame.init()
-	gameRunning = True; updateCounter = 1; microTime = updateCounter
-	grabbed = False; grabType = 0
+	gameRunning = True; updateCounter = 30; microTime = updateCounter
+ 
+	#Variáveis do cursor
+	grabbed = False; grabType = 0; cursorPaintMode = 0
  
 	pySurface = pygame.display.set_mode(screen.size(),pygame.RESIZABLE)
 	timer = pygame.time.Clock()
@@ -221,27 +273,27 @@ def runGame(board:Board, screen:Screen):
 			board.update()
 
 		mousePos = pygame.mouse.get_pos()
-		cursorType = 2 if grabbed else 0
+		cursorType = CURSOR_SELECTED if grabbed else CURSOR_FREE
 
 		if cursorType == 0:
 			for bt in screen.buttons:
 				if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
-					cursorType = 1
+					cursorType = CURSOR_AIM
 					break
 
-		if cursorType == 0:
+		if cursorType == CURSOR_FREE:
 			pygame.mouse.set_cursor(*pygame.cursors.arrow)
-		elif cursorType == 1:
+		elif cursorType == CURSOR_AIM:
 			pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 		else:
 			pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
-		tileRow = int((mousePos[1] - screen.originY)/screen.scaling)
-		tileCol = int((mousePos[0] - screen.originX)/screen.scaling)
+		tileRow = int((mousePos[1] - screen.originY)/screen.scaling + 1)-1
+		tileCol = int((mousePos[0] - screen.originX + 1)/screen.scaling + 1)-1 #Adição e subtração do -1 para evitar int(-0.9) = int(0.9), pela natureza da aproximação do python
 		validTile = (tileRow < board.rows and tileCol < board.cols and tileRow >= 0 and tileCol >= 0)
 
 		if validTile and grabbed:
-			setTileStates(board,tileRow,tileCol,grabType,False)
+			setTileStates(board,tileRow,tileCol,grabType,PREVIEW_FIGURE)
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -257,16 +309,44 @@ def runGame(board:Board, screen:Screen):
 			elif event.type == pygame.MOUSEBUTTONDOWN:
 				for bt in screen.buttons:
 					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
-						if grabbed:
-							grabbed = False
+						if bt.action < PAUSE_TIME:
+							if grabbed and grabType == bt.action:
+								grabbed = False
+							else:	
+								grabbed = True
+								grabType = bt.action
 							break
 						else:
-							grabbed = True
-							grabType = bt.action
-							break
+							launchEventOnce(bt.action)
 				if validTile and grabbed:
-					setTileStates(board,tileRow,tileCol,grabType,True)
+					if grabType in FIGURE_BUTTONS:
+						setTileStates(board,tileRow,tileCol,grabType,ACTIVATE_FIGURE)
+					elif grabType in LIFE_BUTTONS:
+						cursorPaintMode = grabType
+			elif event.type == pygame.MOUSEBUTTONUP:
+				if grabType in LIFE_BUTTONS:
+					cursorPaintMode = 0
+			elif event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_p:
+					launchEventOnce(PAUSE_TIME)
+				elif event.key == pygame.K_ESCAPE:
 					grabbed = False
+				elif event.key == pygame.K_1:
+					if grabbed and grabType == REVIVE_CELL:
+						grabbed = False
+					else:
+						grabbed = True
+						grabType = REVIVE_CELL
+				elif event.key == pygame.K_2:
+					if grabbed and grabType == KILL_CELL:
+						grabbed = False
+					else:
+						grabbed = True
+						grabType = KILL_CELL
+
+		#Modo de pintura: ativação de células
+		if validTile and cursorPaintMode in LIFE_BUTTONS:
+			paintTile(board,tileRow,tileCol,grabType)
 
 		pySurface.fill(BACKGROUND_COLOR)
 		drawCurrentGame(board, screen, pySurface)
@@ -275,13 +355,15 @@ def runGame(board:Board, screen:Screen):
 
 def generateConwayGame(isRandom = True):
 	# Tabuleiro de Exemplo:
-	myModel = model.GameOfLifeModel(width=120,height=70)
+	myModel = model.GameOfLifeModel(width=60,height=35)
 	if isRandom:
 		myModel.randomize(0.50)
 
+	#Botões de Tabuleiro
 	myBoard = Board(myModel)
 	myScreen = Screen(myBoard,1280,720)
 
+	#Botões de Figuras
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,1,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_BLINKER,2,IMG_BLINKER))
 	myScreen.addButton(Button(myScreen,SUMMON_GLIDER,3,IMG_GLIDER))
@@ -296,7 +378,12 @@ def generateConwayGame(isRandom = True):
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,10,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,11,IMG_SQUARE))
 	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,12,IMG_SQUARE))
+ 
+	#Botões de matar e reviver células
+	myScreen.addButton(Button(myScreen,REVIVE_CELL,13,IMG_ALIVECELL))
+	myScreen.addButton(Button(myScreen,KILL_CELL,14,IMG_DEADCELL))
+	myScreen.addButton(Button(myScreen,PAUSE_TIME,15,IMG_PAUSE))
 
 	runGame(myBoard,myScreen)
 
-generateConwayGame()
+generateConwayGame(isRandom=True)
