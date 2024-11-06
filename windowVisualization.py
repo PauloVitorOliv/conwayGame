@@ -238,7 +238,7 @@ def setTileStates(board:Board,i,j,type,setmode):
 	elif type == SUMMON_TOAD:
 		tilist += [[i,j],[(i+1)%board.rows,j],[(i+2)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols],[(i+1)%board.rows,(j+3)%board.cols]]
 	elif type == SUMMON_BEEHIVE:
-		tilist [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1)%board.rows,(j-1)%board.cols],[(i-1)%board.rows,(j-2)%board.cols],[i,(j+2)%board.cols]]
+		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1+board.rows)%board.rows,(j+1)%board.cols],[(i-1+board.rows)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols]]
 	elif type == SUMMON_TUB:
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
 
