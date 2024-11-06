@@ -247,7 +247,7 @@ def setTileStates(board:Board,i,j,type,setmode):
 
 def runGame(board:Board, screen:Screen):
 	pygame.init()
-	gameRunning = True; updateCounter = 1; microTime = updateCounter
+	gameRunning = True; updateCounter = 30; microTime = updateCounter
  
 	#Variáveis do cursor
 	grabbed = False; grabType = 0; cursorPaintMode = 0
