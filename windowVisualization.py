@@ -415,20 +415,20 @@ def generateConwayGame(isRandom = False):
 	screen = Screen(1280,720)
 
 	#Botões de Figuras
-	screen.addButton(Button(SUMMON_SQUARE,1,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_BLINKER,2,IMG_BLINKER))
-	screen.addButton(Button(SUMMON_GLIDER,3,IMG_GLIDER))
-	screen.addButton(Button(SUMMON_LWSS,4,IMG_LWSS))
-	screen.addButton(Button(SUMMON_BEACON,5,IMG_BEACON))
+	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,1,IMG_SQUARE))
+	myScreen.addButton(Button(myScreen,SUMMON_BLINKER,2,IMG_BLINKER))
+	myScreen.addButton(Button(myScreen,SUMMON_GLIDER,3,IMG_GLIDER))
+	myScreen.addButton(Button(myScreen,SUMMON_LWSS,4,IMG_LWSS))
+	myScreen.addButton(Button(myScreen,SUMMON_BEACON,5,IMG_BEACON))
+	myScreen.addButton(Button(myScreen,SUMMON_MWSS,6,IMG_MWSS))
+	myScreen.addButton(Button(myScreen,SUMMON_TOAD,7,IMG_TOAD))
+	myScreen.addButton(Button(myScreen,SUMMON_BEEHIVE,8,IMG_BEEHIVE))
+	myScreen.addButton(Button(myScreen,SUMMON_TUB,9,IMG_TUB))
 	'''<FIGURAS>'''
 	#Troque os nomes e códigos de ação de cada figura nova adicionada. Não altere o slot
-	screen.addButton(Button(SUMMON_SQUARE,6,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,7,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,8,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,9,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,10,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,11,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,12,IMG_SQUARE))
+	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,10,IMG_SQUARE))
+	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,11,IMG_SQUARE))
+	myScreen.addButton(Button(myScreen,SUMMON_SQUARE,12,IMG_SQUARE))
  
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
