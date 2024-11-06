@@ -1,4 +1,5 @@
-# Dependências 
+# Dependências
+import random
 import pygame
 import model as conwayModel
 
@@ -38,19 +39,20 @@ SUMMON_FIGURA12 = 12
 REVIVE_CELL = 13
 KILL_CELL = 14
 PAUSE_TIME = 15
-GENERATE_RANDOM_BOARD = 16
+GENERATE_BOARD = 16
+CLEAR_BOARD = 17
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
 
 # Tipos de botões
-CONFIG_BUTTONS = range(13,16)
+CONFIG_BUTTONS = range(13,18)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,15)
 CLICKABLE_BUTTONS = range(1,15)
 PAUSE_BUTTON = 15
-GENERATE_BUTTON = 16
+GENERATE_BUTTON = range(16,18)
 
 # Tipos de cursor
 CURSOR_FREE = 0
@@ -76,6 +78,8 @@ IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
 IMG_BORDER = pygame.image.load("images/border.png")
+IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
+IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 
 # Classes
 '''
@@ -256,10 +260,21 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 
 #Função para executar um evento que ocorre de forma imediata, por exemplo, pausar o jogo
 def launchEventOnce(type):
-	global boardPaused, screen
+	global boardPaused, screen, board, model
 	if type == PAUSE_TIME:
 		boardPaused = not boardPaused
 		screen.buttons[PAUSE_TIME-1].selected = boardPaused
+	elif type == GENERATE_BOARD:
+		h, w = board.boardDims()
+		newModel = conwayModel.GameOfLifeModel(width=w,height=h)
+		newModel.randomize(random.betavariate(7,7)) #Distribuição beta probabilística pois tabuleiros muito próximos de 0% ou 100% de células ativas não são muito interessantes
+		model.cell_layer = newModel.cell_layer
+		board.update(False)
+	elif type == CLEAR_BOARD:
+		h, w = board.boardDims()
+		newModel = conwayModel.GameOfLifeModel(width=w,height=h)
+		model.cell_layer = newModel.cell_layer
+		board.update(False)
 
 #Pinta o quadrado de posição i,j, matando ou revivendo a célula, de acordo com a ocasião necessária
 def paintTile(i,j,type):
@@ -267,10 +282,10 @@ def paintTile(i,j,type):
 	i %= board.rows; j %= board.cols
 	if type == REVIVE_CELL:
 		board.tiles[i][j].live()
-		model.cell_layer.data[j][i] = True
+		model.cell_layer.set_cell((j,i),True)
 	elif type == KILL_CELL:
 		board.tiles[i][j].die()
-		model.cell_layer.data[j][i] = False
+		model.cell_layer.set_cell((j,i),False)
 
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
 def setTileStates(i,j,type,setmode):
@@ -307,7 +322,7 @@ def setTileStates(i,j,type,setmode):
 		for tile in tilist:
 			board.tiles[tile[0]][tile[1]].selected = False
 			board.tiles[tile[0]][tile[1]].live()
-			model.cell_layer.data[tile[1]][tile[0]] = True
+			model.cell_layer.set_cell((tile[1],tile[0]),True)
 
 def runGame():
 	global screen, board
@@ -475,7 +490,8 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
-	screen.addButton(Button(PAUSE_TIME,16,IMG_PAUSE))
+	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
+	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
 
 	runGame()
 
