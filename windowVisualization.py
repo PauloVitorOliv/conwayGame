@@ -2,6 +2,8 @@
 import random
 import pygame
 import model as conwayModel
+import os
+os.chdir(os.path.dirname(__file__))
 
 # Constantes Globais
 FPS = 60
@@ -30,10 +32,9 @@ SUMMON_MWSS = 6
 SUMMON_TOAD = 7 
 SUMMON_BEEHIVE = 8 
 SUMMON_TUB = 9
-'''<FIGURAS>'''
-SUMMON_FIGURA10 = 10
-SUMMON_FIGURA11 = 11
-SUMMON_FIGURA12 = 12 
+SUMMON_LONGTAIL = 10
+SUMMON_XPENTOMINO = 11
+SUMMON_LONGHOOK = 12 
 
 #Constantes de ação dos botões: gerais
 REVIVE_CELL = 13
@@ -69,10 +70,9 @@ IMG_MWSS = pygame.image.load("images/mwss.png")
 IMG_TOAD = pygame.image.load("images/toad.png")
 IMG_BEEHIVE = pygame.image.load("images/beehive.png") 
 IMG_TUB = pygame.image.load("images/tub.png")
-'''<FIGURAS>'''
-IMG_FIGURA10 = pygame.image.load("images/square.png")
-IMG_FIGURA11 = pygame.image.load("images/square.png")
-IMG_FIGURA12 = pygame.image.load("images/square.png")
+IMG_LONGTAIL = pygame.image.load("images/longtail.png")
+IMG_XPENTOMINO = pygame.image.load("images/xpentomino.png")
+IMG_LONGHOOK = pygame.image.load("images/longhook.png")
 
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
@@ -311,6 +311,12 @@ def setTileStates(i,j,type,setmode):
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1+board.rows)%board.rows,(j+1)%board.cols],[(i-1+board.rows)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols]]
 	elif type == SUMMON_TUB:
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
+	elif type == SUMMON_LONGTAIL:
+		tilist += [[i, j], [(i+1) % board.rows, j], [(i+1) % board.rows, (j+1)%board.cols],[(i-1) % board.rows, (j+1)%board.cols],[(i-2) % board.rows, (j+1)%board.cols]]
+	elif type == SUMMON_XPENTOMINO:
+		tilist += [[i, j], [(i+1) % board.rows, j], [i, (j+1)%board.cols],[(i-1) % board.rows, j],[i, (j-1)%board.cols]]
+	elif type == SUMMON_LONGHOOK:
+		tilist += [[i, j], [i, (j+1)%board.cols], [(i+1) % board.rows, (j+1)%board.cols],[(i+2) % board.rows, j],[(i+2) % board.rows, (j-1)%board.cols],[(i+2) % board.rows, (j-2)%board.cols],[(i+2) % board.rows, (j-3)%board.cols],[(i+1) % board.rows, (j-3)%board.cols]]
 
 	'''<FIGURAS>'''
 	#Adicione elif para cada nova figura. tilist é a lista das coordenadas dos pontos afetados, sendo [i,j] o canto	superior esquerdo. Lembre-se de tomar coordenadas diferentes de [i,j] com o módulo, igual usado acima
@@ -482,9 +488,9 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(SUMMON_TUB,9,IMG_TUB))
 	'''<FIGURAS>'''
 	#Troque os nomes e códigos de ação de cada figura nova adicionada. Não altere o slot
-	screen.addButton(Button(SUMMON_SQUARE,10,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,11,IMG_SQUARE))
-	screen.addButton(Button(SUMMON_SQUARE,12,IMG_SQUARE))
+	screen.addButton(Button(SUMMON_LONGTAIL,10,IMG_LONGTAIL))
+	screen.addButton(Button(SUMMON_XPENTOMINO,11,IMG_XPENTOMINO))
+	screen.addButton(Button(SUMMON_LONGHOOK,12,IMG_LONGHOOK))
  
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
