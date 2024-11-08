@@ -4,15 +4,14 @@ from mesa.datacollection import DataCollector
 from mesa.space import PropertyLayer
 from scipy.signal import convolve2d
 
-# fmt: off
 class GameOfLifeModel(Model):
-	def __init__(self, width=10, height=10):
+	def __init__(self, rows=10, cols=10):
 		super().__init__()
 		# Inicializa a camada de propriedades para os estados das células
-		self.cell_layer = PropertyLayer("cells", width, height, False, dtype=bool)
+		self.cell_layer = PropertyLayer("cells", rows, cols, False, dtype=bool)
 
 		# Métricas e coletor de dados
-		self.cells = width * height
+		self.cells = rows * cols
 		self.alive_count = 0
 		self.alive_fraction = 0
 		self.datacollector = DataCollector(
@@ -23,8 +22,8 @@ class GameOfLifeModel(Model):
 		
 		# Aditional Data
 		self.iteration = 0
-		self.width = width
-		self.height = height
+		self.rows = rows
+		self.cols = cols
 
 	def step(self):
 		# Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
@@ -52,15 +51,12 @@ class GameOfLifeModel(Model):
 		self.alive_count = np.sum(self.cell_layer.data)
 		self.alive_fraction = self.alive_count / self.cells
 		self.datacollector.collect(self)
-
-	def exportData(self):
-		return self.cell_layer.data
 		
 	def dims(self):
-		return [self.height, self.width]
+		return [self.rows, self.cols]
 		
 	def randomize(self,aliveFraction):
 		self.alive_fraction = aliveFraction
 		# Define aleatoriamente células como vivas
-		self.cell_layer.data = np.random.choice([True, False], size=(self.width, self.height), p=[self.alive_fraction, 1 - self.alive_fraction])
+		self.cell_layer.data = np.random.choice([True, False], size=(self.rows, self.cols), p=[self.alive_fraction, 1 - self.alive_fraction])
 		self.datacollector.collect(self)
