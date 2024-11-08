@@ -1,9 +1,9 @@
-# Dependências
+# Dependências de bibliotecas externas
 import random
 import pygame
+
+# Dependências no projeto
 import model as conwayModel
-import os
-os.chdir(os.path.dirname(__file__))
 
 # Constantes Globais
 FPS = 60
@@ -84,10 +84,9 @@ IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 # Classes
 '''
 Classe Tile -> A menor unidade do jogo da vida de conway
-	_state: representa se a célula está viva ou morta
-	selected: se o usuário está selecionando a célula no momento ou não
- 
-	state(): obtém o estado da célula (vivo/morto)
+	state: representa se a célula está viva ou morta
+	selected: True se o usuário está com o mouse por cima da célula no momento
+
 	change(): muda o estado da célula (na interface gráfica)
 	live(): revive a célula (na interface gráfica)
 	die(): mata a célula (na interface gráfica)
@@ -95,23 +94,17 @@ Classe Tile -> A menor unidade do jogo da vida de conway
 
 class Tile:
 	def __init__(self):
-		self._state = DEAD
+		self.state = DEAD
 		self.selected = False
 
-	def __repr__(self):
-		return f"{self._state}"
-
-	def state(self):
-		return self._state
-
 	def change(self):
-		self._state = 1 - self._state
+		self.state = 1 - self.state
 
 	def live(self):
-		self._state = ALIVE
+		self.state = ALIVE
 
 	def die(self):
-		self._state = DEAD
+		self.state = DEAD
 
 '''
 Classe Board -> Possui um conjunto de tiles e uma instância de model, representa o tabuleiro do jogo
@@ -127,10 +120,10 @@ class Board:
 	def __init__(self):
 		global model
 		self.rows, self.cols = model.dims()
-		self.tiles = [[0]*self.cols for _ in range(self.rows)] #Inicia uma matriz
+		self.tiles = [[0]*self.cols for _ in range(self.rows)] #Inicia uma matriz vazia
 		for i in range(self.rows):
 			for j in range(self.cols):
-				self.tiles[i][j] = Tile() #Popula a matriz com tiles
+				self.tiles[i][j] = Tile() #Popula a matriz com tiles novos
   
 	def boardDims(self):
 		return [self.rows, self.cols]
@@ -140,8 +133,8 @@ class Board:
 		if step and not boardPaused: #Atualizações de estado no modelo exigem o jogo despausado
 			model.step()
 		for i in range(self.rows):
-			for j in range(self.cols): #O modelo considera em cell_layer.data[coluna][linha], mas na visualização, consideramos [linha][coluna], por isso é frequente o uso de [i][j] vs [j][i]
-				if self.tiles[i][j].state() != model.cell_layer.data[j][i]:
+			for j in range(self.cols):
+				if self.tiles[i][j].state != model.cell_layer.data[i][j]:
 					self.tiles[i][j].change()
 
 '''
@@ -245,7 +238,7 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 				board.tiles[i][j].selected = False
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
 				pygame.draw.rect(surface,SELECTED_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
-			elif board.tiles[i][j].state() == ALIVE:
+			elif board.tiles[i][j].state == ALIVE:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
 				pygame.draw.rect(surface,ALIVE_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
 			else:
@@ -265,14 +258,14 @@ def launchEventOnce(type):
 		boardPaused = not boardPaused
 		screen.buttons[PAUSE_TIME-1].selected = boardPaused
 	elif type == GENERATE_BOARD:
-		h, w = board.boardDims()
-		newModel = conwayModel.GameOfLifeModel(width=w,height=h)
+		r, c = board.boardDims()
+		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
 		newModel.randomize(random.betavariate(7,7)) #Distribuição beta probabilística pois tabuleiros muito próximos de 0% ou 100% de células ativas não são muito interessantes
 		model.cell_layer = newModel.cell_layer
 		board.update(False)
 	elif type == CLEAR_BOARD:
-		h, w = board.boardDims()
-		newModel = conwayModel.GameOfLifeModel(width=w,height=h)
+		r, c = board.boardDims()
+		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
 		model.cell_layer = newModel.cell_layer
 		board.update(False)
 
@@ -282,10 +275,10 @@ def paintTile(i,j,type):
 	i %= board.rows; j %= board.cols
 	if type == REVIVE_CELL:
 		board.tiles[i][j].live()
-		model.cell_layer.set_cell((j,i),True)
+		model.cell_layer.set_cell((i,j),True)
 	elif type == KILL_CELL:
 		board.tiles[i][j].die()
-		model.cell_layer.set_cell((j,i),False)
+		model.cell_layer.set_cell((i,j),False)
 
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
 def setTileStates(i,j,type,setmode):
@@ -328,7 +321,7 @@ def setTileStates(i,j,type,setmode):
 		for tile in tilist:
 			board.tiles[tile[0]][tile[1]].selected = False
 			board.tiles[tile[0]][tile[1]].live()
-			model.cell_layer.set_cell((tile[1],tile[0]),True)
+			model.cell_layer.set_cell((tile[0],tile[1]),True)
 
 def runGame():
 	global screen, board
@@ -468,7 +461,7 @@ def runGame():
 def generateConwayGame(isRandom = False):
 	#Tabuleiro inicial
 	global model, board, screen
-	model = conwayModel.GameOfLifeModel(width=60,height=35)
+	model = conwayModel.GameOfLifeModel(rows=35,cols=60)
 	if isRandom:
 		model.randomize(0.50)
 
