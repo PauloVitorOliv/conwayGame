@@ -34,7 +34,7 @@ SUMMON_BEEHIVE = 8
 SUMMON_TUB = 9
 SUMMON_LONGTAIL = 10
 SUMMON_XPENTOMINO = 11
-SUMMON_LONGHOOK = 12 
+SUMMON_LONGHOOK = 12
 
 #Constantes de ação dos botões: gerais
 REVIVE_CELL = 13
@@ -158,6 +158,7 @@ class Button:
 		self.updatePos()
 
 	def updatePos(self):
+		global screen
 		if self.action in FIGURE_BUTTONS:
 			self.size = int(screen.actualHeight/7)
 			slotRow = (self.slot-1)//2
@@ -169,6 +170,56 @@ class Button:
 			slotCol = self.slot-13
 			self.x = screen.originX + slotCol * int(self.size * 1.2)
 			self.y = screen.originY - int(self.size * (1.2))
+
+
+class Slider_Button:
+
+	def __init__(self):
+		self.slider_value = 60
+		self.dragging = False
+		self.progress = 0.5
+		self.slider_rect = pygame.Rect(300, 70, 300, 10)
+		self.slider_thumb_rect = pygame.Rect(0, 75, 10, 20)
+		self.updatePos()
+		self.slider_thumb_rect.x = self.x_st
+
+	def updatePos(self):
+
+		global screen
+
+		self.height_sr = int(screen.actualHeight/49)
+		self.width_sr = self.height_sr*15
+		self.x_sr = screen.originX
+		self.y_sr = screen.endY + int(self.height_sr*(3))
+
+		self.height_st = 3*self.height_sr
+		self.width_st = self.height_sr
+		self.x_st = screen.originX + self.progress*(self.width_sr - self.width_st)
+		self.y_st = screen.endY + int(self.height_sr*(3)) - self.height_sr
+
+
+		#atualização das variáveis
+		self.slider_rect.height = self.height_sr
+		self.slider_rect.width = self.width_sr
+		self.slider_rect.x = self.x_sr
+		self.slider_rect.y = self.y_sr
+		self.slider_thumb_rect.height = self.height_st
+		self.slider_thumb_rect.width = self.width_st
+		self.slider_thumb_rect.x = self.x_st 
+		self.slider_thumb_rect.y = self.y_st
+
+	def updateThumb(self, MousePos = (0,0)):
+		global screen
+
+		if self.dragging:
+			new_x = max(min(MousePos[0], self.slider_rect.right - self.slider_thumb_rect.width), self.slider_rect.left)
+			self.progress = (new_x - self.x_sr)/(self.width_sr - self.width_st)
+			self.x_st = screen.originX + self.progress*(self.width_sr - self.width_st)
+			self.slider_thumb_rect.x = self.x_st
+
+	def draw(self, screen):
+		pygame.draw.rect(screen, (50,50,50) , self.slider_rect)
+		pygame.draw.rect(screen, (0,0,255) , self.slider_thumb_rect)
 
 '''
 Classe Screen -> A classe que gerencia o display do tabuleiro e de todas as outras informações necessárias
@@ -188,6 +239,7 @@ Classe Screen -> A classe que gerencia o display do tabuleiro e de todas as outr
 class Screen:
 	def __init__(self, width, height):
 		self.buttons = []
+		self.sliders = []
 		self.update(width,height)
 
 	def size(self):
@@ -214,9 +266,16 @@ class Screen:
 
 		for bt in self.buttons:
 			bt.updatePos()
+
+		for sl in self.sliders:
+			sl.updatePos()
   
 	def addButton(self, newButton):
 		self.buttons.append(newButton)
+
+	def addSlider(self, newSlider):
+		self.sliders.append(newSlider)
+
 
 # Funções
 def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
@@ -250,6 +309,9 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
 		if bt.selected:
 			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
+
+	for sl in screen.sliders:
+		sl.draw(surface)
 
 #Função para executar um evento que ocorre de forma imediata, por exemplo, pausar o jogo
 def launchEventOnce(type):
@@ -334,8 +396,10 @@ def runGame():
 	#Superfície da tela
 	pySurface = pygame.display.set_mode(screen.size(),pygame.RESIZABLE)
 	timer = pygame.time.Clock()
-	
+
 	board.update(False)
+	screen.update(screen.width, screen.height)
+
 	while(gameRunning):
      
 		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
@@ -390,6 +454,14 @@ def runGame():
 			
 			#Cliques esquerdos do mouse em botões ou em tiles
 			elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+
+				#Verifica se o botão deslizando está sendo acionado e atualiza seu estado
+				for sl in screen.sliders:
+					if sl.slider_thumb_rect.collidepoint(event.pos): 
+						sl.dragging = True
+					else:
+						sl.dragging = False
+
 				for bt in screen.buttons:
 					#Verifica se clicou em um botão para ativar o evento correspondente
 					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
@@ -451,11 +523,17 @@ def runGame():
 
 		#Modo de pintura: ativação/desativação de células individuais
 		if validTile and cursorPaintMode in LIFE_BUTTONS:
-			paintTile(tileRow,tileCol,grabType)
+			paintTile(tileRow,tileCol,grabType)	
 
+		#Update do Slider
+		for sl in screen.sliders:
+			sl.updateThumb(mousePos)
+
+		#Update da tela
 		pySurface.fill(BACKGROUND_COLOR)
 		drawCurrentGame(pySurface)
 		pygame.display.update()
+
 	pygame.quit()
 
 def generateConwayGame(isRandom = False):
@@ -491,6 +569,8 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
 	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
+
+	screen.addSlider(Slider_Button())
 
 	runGame()
 
