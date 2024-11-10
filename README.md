@@ -3,12 +3,12 @@
 ## Instruções de uso para o usuário
 Ainda não há instruções para o uso do projeto.
 
-## Instruções de uso para o colaborador (Estudante)
+## Instruções de uso para o colaborador
 
 ### Instalação
 1. Instale o *Python* e o *Git* no seu computador.
 
-### Criar um ambiente virtual
+### (Opcional) Criar um ambiente virtual
 1. Crie uma pasta para o projeto com o nome de sua escolha.
 2. Abra o terminal e execute o comando:
    ```bash
@@ -62,6 +62,6 @@ Ainda não há instruções para o uso do projeto.
 	git push -u origin nomeSobrenome
 	```
 
-**(Opcional - Caso não for feito, algum administrador do projeto fará depois)**
+**(Opcional) Caso não for feito, algum administrador do projeto fará depois)**
 
 3. Entre no site do GitHub com o login feito em https://github.com/PauloVitorOliv/conwayGame e clique em **Compare and Pull Request**. Descreva a alteração que você fez no título e descrição e clique em **Create Pull Request**.
