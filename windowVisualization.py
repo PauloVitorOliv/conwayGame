@@ -32,7 +32,7 @@ SUMMON_MWSS = 6
 SUMMON_TOAD = 7 
 SUMMON_BEEHIVE = 8 
 SUMMON_TUB = 9
-SUMMON_LONGTAIL = 10
+SUMMON_LEGS = 10
 SUMMON_XPENTOMINO = 11
 SUMMON_LONGHOOK = 12 
 
@@ -70,7 +70,7 @@ IMG_MWSS = pygame.image.load("images/mwss.png")
 IMG_TOAD = pygame.image.load("images/toad.png")
 IMG_BEEHIVE = pygame.image.load("images/beehive.png") 
 IMG_TUB = pygame.image.load("images/tub.png")
-IMG_LONGTAIL = pygame.image.load("images/longtail.png")
+IMG_LEGS = pygame.image.load("images/legs.png")
 IMG_XPENTOMINO = pygame.image.load("images/xpentomino.png")
 IMG_LONGHOOK = pygame.image.load("images/longhook.png")
 
@@ -311,10 +311,10 @@ def setTileStates(i,j,type,setmode):
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1+board.rows)%board.rows,(j+1)%board.cols],[(i-1+board.rows)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols]]
 	elif type == SUMMON_TUB:
 		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
-	elif type == SUMMON_LONGTAIL:
-		tilist += [[i, j], [(i+1) % board.rows, j], [(i+1) % board.rows, (j+1)%board.cols],[(i-1) % board.rows, (j+1)%board.cols],[(i-2) % board.rows, (j+1)%board.cols]]
+	elif type == SUMMON_LEGS:
+		tilist += [[i, j], [(i+1) % board.rows, j], [(i+1) % board.rows, (j-1)%board.cols],[(i+1) % board.rows, (j-2)%board.cols],[i, (j-3)%board.cols],[(i-1) % board.rows, (j-3)%board.cols],[(i-2) % board.rows, (j-3)%board.cols],[(i-2) % board.rows, (j-2)%board.cols]]
 	elif type == SUMMON_XPENTOMINO:
-		tilist += [[i, j], [(i+1) % board.rows, j], [i, (j+1)%board.cols],[(i-1) % board.rows, j],[i, (j-1)%board.cols]]
+		tilist += [[i, j], [i, (j+1)%board.cols], [i, (j+2)%board.cols],[(i-1) % board.rows, (j+1)%board.cols],[(i+1) % board.rows, (j+1)%board.cols]]
 	elif type == SUMMON_LONGHOOK:
 		tilist += [[i, j], [i, (j+1)%board.cols], [(i+1) % board.rows, (j+1)%board.cols],[(i+2) % board.rows, j],[(i+2) % board.rows, (j-1)%board.cols],[(i+2) % board.rows, (j-2)%board.cols],[(i+2) % board.rows, (j-3)%board.cols],[(i+1) % board.rows, (j-3)%board.cols]]
 
@@ -488,7 +488,7 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(SUMMON_TUB,9,IMG_TUB))
 	'''<FIGURAS>'''
 	#Troque os nomes e códigos de ação de cada figura nova adicionada. Não altere o slot
-	screen.addButton(Button(SUMMON_LONGTAIL,10,IMG_LONGTAIL))
+	screen.addButton(Button(SUMMON_LEGS,10,IMG_LEGS))
 	screen.addButton(Button(SUMMON_XPENTOMINO,11,IMG_XPENTOMINO))
 	screen.addButton(Button(SUMMON_LONGHOOK,12,IMG_LONGHOOK))
  
