@@ -1,6 +1,8 @@
 # Dependências de bibliotecas externas
 import random
 import pygame
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Dependências no projeto
 import model as conwayModel
@@ -29,7 +31,7 @@ SUMMON_BLINKER = 2
 SUMMON_GLIDER = 3 
 SUMMON_LWSS = 4
 SUMMON_BEACON = 5
-SUMMON_MWSS = 6
+SUMMON_EATER = 6
 SUMMON_TOAD = 7 
 SUMMON_BEEHIVE = 8 
 SUMMON_TUB = 9
@@ -72,7 +74,7 @@ IMG_BLINKER = pygame.image.load("images/blinker.png")
 IMG_GLIDER = pygame.image.load("images/glider.png") 
 IMG_LWSS = pygame.image.load("images/lwss.png") 
 IMG_BEACON = pygame.image.load("images/beacon.png")
-IMG_MWSS = pygame.image.load("images/mwss.png")
+IMG_EATER = pygame.image.load("images/eater.png")
 IMG_TOAD = pygame.image.load("images/toad.png")
 IMG_BEEHIVE = pygame.image.load("images/beehive.png") 
 IMG_TUB = pygame.image.load("images/tub.png")
@@ -430,8 +432,8 @@ def setTileStates(i,j,type,setmode):
 		tilist += [[i,j], [(i+2)%board.rows, j], [(i+2)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+1)%board.cols], [(i-1)%board.rows, (j+2)%board.cols], [(i-1)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+4)%board.cols], [(i), (j+4)%board.cols], [(i+1)%board.rows, (j+4)%board.cols]]
 	elif type == SUMMON_BEACON:
 		tilist += [[i,j],[(i+1)%board.rows,j],[i,(j+1)%board.cols],[(i+1)%board.rows,(j+1)%board.cols], [(i+2)%board.rows,(j+2)%board.cols],[(i+3)%board.rows,(j+2)%board.cols],[(i+2)%board.rows,(j+3)%board.cols],[(i+3)%board.rows,(j+3)%board.cols]]
-	elif type == SUMMON_MWSS:
-		tilist += [[i,j],[(i+2)%board.rows,j],[(i+3)%board.rows,(j+1)%board.cols],[(i+3)%board.rows,(j+2)%board.cols],[(i+3)%board.rows,(j+3)%board.cols],[(i+3)%board.rows,(j+4)%board.cols],[(i+3)%board.rows,(j+5)%board.cols],[(i+2)%board.rows,(j+5)%board.cols],[(i+1)%board.rows,(j+5)%board.cols],[i,(j+4)%board.cols],[(i-1)%board.rows,(j+2)%board.cols]]
+	elif type == SUMMON_EATER:
+		tilist += [[i,j],[i,(j+1)%board.cols],[(i-1)%board.rows,j],[(i-2)%board.rows,(j+1)%board.cols],[(i-2)%board.rows,(j+2)%board.cols],[(i-2)%board.rows,(j+3)%board.cols],[(i-3)%board.rows,(j+3)%board.cols]]
 	elif type == SUMMON_TOAD:
 		tilist += [[i,j],[(i+1)%board.rows,j],[(i+2)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols],[(i+1)%board.rows,(j+3)%board.cols]]
 	elif type == SUMMON_BEEHIVE:
@@ -660,7 +662,7 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(SUMMON_GLIDER,3,IMG_GLIDER))
 	screen.addButton(Button(SUMMON_LWSS,4,IMG_LWSS))
 	screen.addButton(Button(SUMMON_BEACON,5,IMG_BEACON))
-	screen.addButton(Button(SUMMON_MWSS,6,IMG_MWSS))
+	screen.addButton(Button(SUMMON_EATER,6,IMG_EATER))
 	screen.addButton(Button(SUMMON_TOAD,7,IMG_TOAD))
 	screen.addButton(Button(SUMMON_BEEHIVE,8,IMG_BEEHIVE))
 	screen.addButton(Button(SUMMON_TUB,9,IMG_TUB))
