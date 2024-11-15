@@ -349,7 +349,7 @@ def setTileStates(i,j,type,setmode):
 	if type in LIFE_BUTTONS:
 		tilist += [[i,j]]
 	elif type == SUMMON_SQUARE:
-		tilist += [[i,j],[(i+1)%board.rows,j],[i,(j+1)%board.cols],[(i+1)%board.rows,(j+1)%board.cols]]
+		tilist += tilist += [[i,j], [(i-1) % board.rows, (j-1)%board.cols], [i, (j-1)%board.cols], [(i+1) % board.rows, (j-1)%board.cols], [(i-2) % board.rows, (j-2)%board.cols], [(i+2) % board.rows, (j-2)%board.cols], [i, (j-3)%board.cols], [(i-3) % board.rows, (j-4)%board.cols], [(i+3) % board.rows, (j-4)%board.cols], [(i-3) % board.rows, (j-5)%board.cols], [(i+3) % board.rows, (j-5)%board.cols], [(i-2) % board.rows, (j-6)%board.cols], [(i+2) % board.rows, (j-6)%board.cols], [(i-1) % board.rows, (j-7)%board.cols], [i, (j-7)%board.cols], [(i+1) % board.rows, (j-7)%board.cols], [(i-1) % board.rows, (j-16)%board.cols], [i, (j-16)%board.cols], [(i-1) % board.rows, (j-17)%board.cols], [i, (j-17)%board.cols], [(i-3) % board.rows, (j+3)%board.cols], [(i-2) % board.rows, (j+3)%board.cols], [(i-1) % board.rows, (j+3)%board.cols], [(i-3) % board.rows, (j+4)%board.cols], [(i-2) % board.rows, (j+4)%board.cols], [(i-1) % board.rows, (j+4)%board.cols], [(i-4) % board.rows, (j+5)%board.cols], [i, (j+5)%board.cols], [(i-5) % board.rows, (j+7)%board.cols], [(i-4) % board.rows, (j+7)%board.cols], [i, (j+7)%board.cols], [(i+1) % board.rows, (j+7)%board.cols], [(i-3) % board.rows, (j+17)%board.cols], [(i-2) % board.rows, (j+17)%board.cols], [(i-3) % board.rows, (j+18)%board.cols], [(i-2) % board.rows, (j+18)%board.cols]]
 	elif type == SUMMON_BLINKER:
 		tilist +=[[i,j], [(i+1)%board.rows, j], [(i+2)%board.rows, j]]
 	elif type == SUMMON_GLIDER:
