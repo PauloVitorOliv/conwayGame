@@ -585,6 +585,8 @@ def runGame():
 			elif event.type == pygame.MOUSEBUTTONUP:
 				if grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
+				for sl in screen.sliders:
+					sl.dragging = False
      
 			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
 				global model
@@ -678,13 +680,15 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
 	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
- 
+	
 	#Caixas numéricas de alterar regras e textos
 	screen.addFloatingText(Floating_Text("Renascimentos:",30))
 	screen.addFloatingText(Floating_Text("Sobrevive:   ≥        ≤ ",31))
 	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,38,3))
 	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,37,2))
 	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,41,3))
+
+	screen.addSlider(Slider_Button())
 
 	runGame()
 
