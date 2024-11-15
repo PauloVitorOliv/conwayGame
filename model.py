@@ -20,10 +20,13 @@ class GameOfLifeModel(Model):
 		)
 		self.datacollector.collect(self)
 		
-		# Aditional Data
+		# Dados adicionais
 		self.iteration = 0
 		self.rows = rows
 		self.cols = cols
+		self.vizInf = 2 #Sobrevive se quantidade de vizinho estiver em [vizInf, vizSup]
+		self.vizSup = 3 
+		self.vizRen = 3 #Quantidade de vizinhos para renascer
 
 	def step(self):
 		# Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
@@ -42,9 +45,9 @@ class GameOfLifeModel(Model):
 		# 2. Uma célula morta com exatamente 3 vizinhos vivos torna-se viva.
 		# Essas regras são implementadas usando operações lógicas na grade.
 		self.cell_layer.data = np.logical_or(
-			np.logical_and(self.cell_layer.data, np.logical_or(neighbor_count == 2, neighbor_count == 3)),
+			np.logical_and(self.cell_layer.data, np.logical_and((neighbor_count >= self.vizInf),(neighbor_count <= self.vizSup))),
 			# Regra para células vivas
-			np.logical_and(~self.cell_layer.data, neighbor_count == 3)  # Regra para células mortas
+			np.logical_and(~self.cell_layer.data, neighbor_count == self.vizRen)  # Regra para células mortas
 		)
 
 		# Métricas
@@ -60,3 +63,11 @@ class GameOfLifeModel(Model):
 		# Define aleatoriamente células como vivas
 		self.cell_layer.data = np.random.choice([True, False], size=(self.rows, self.cols), p=[self.alive_fraction, 1 - self.alive_fraction])
 		self.datacollector.collect(self)
+  
+	def updateRule(self, id, val):
+		if id == 0:
+			self.vizRen = val
+		elif id == 1:
+			self.vizInf = val
+		else:
+			self.vizSup = val

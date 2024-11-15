@@ -19,6 +19,7 @@ boardPaused = False
 model = None #Instância do modelo mesa
 board = None #Instância de Board
 screen = None #Instância de Screen
+used_font = None #Fonte a ser usada
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
 
@@ -43,6 +44,10 @@ PAUSE_TIME = 15
 GENERATE_BOARD = 16
 CLEAR_BOARD = 17
 
+CHANGE_REVIVAL = 20
+CHANGE_MIN_SURVIVAL = 21
+CHANGE_MAX_SURVIVAL = 22
+
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
@@ -52,6 +57,7 @@ CONFIG_BUTTONS = range(13,18)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,15)
 CLICKABLE_BUTTONS = range(1,15)
+NUMBER_BOXES = range(20,23)
 PAUSE_BUTTON = 15
 GENERATE_BUTTON = range(16,18)
 
@@ -172,8 +178,55 @@ class Button:
 			self.y = screen.originY - int(self.size * (1.2))
 
 
-class Slider_Button:
+class Number_Box:
+	def __init__(self, act, slot, start = 1):
+		self.action = act
+		self.altSlot = slot
+		self.selected = False
+		self.value = start
+		self.rect = pygame.Rect(0,0,1,1)
+		self.updatePos()
 
+	def updatePos(self):
+		global screen
+		self.size = int(screen.actualHeight/25)
+		slotRow = (self.altSlot)%2
+		slotCol = (self.altSlot-30)//2
+		self.x = screen.originX + slotCol * int(self.size * 1.2) + int(screen.actualHeight/10)*6
+		self.y = screen.originY - int(int(screen.actualHeight/12) * (1.2)) + slotRow * (int(screen.actualHeight/12) - self.size)
+		self.epsx = int(self.size*0.3) #Epsilon de posicionamento do texto numérico
+		self.epsy = int(self.size*0.1)
+		self.rect = pygame.Rect(self.x, self.y, self.size, self.size)
+
+	def draw(self, surface):
+		global used_font
+		pygame.draw.rect(surface, (50,50,50) , self.rect)
+		if self.selected:
+			surface.blit(pygame.transform.scale(IMG_BORDER, (self.size, self.size)), (self.x, self.y))
+		surface.blit(used_font.render(str(self.value),True,SELECTED_COLOR), (self.x + self.epsx, self.y + self.epsy))
+
+class Floating_Text:
+	def __init__(self, words, slot):
+		self.text = words
+		self.altSlot = slot
+		self.x = 0
+		self.y = 0
+
+	def updatePos(self): #Mesmo sistema de posicionamento de Number_Box
+		global screen
+		self.size = int(screen.actualHeight/25)
+		slotRow = (self.altSlot)%2
+		slotCol = (self.altSlot-30)//2
+		self.x = screen.originX + slotCol * int(self.size * 1.2) + int(screen.actualHeight/10)*5 #Espaçamento Adicional Fixo
+		self.y = screen.originY - int(int(screen.actualHeight/12) * (1.2)) + slotRow * (int(screen.actualHeight/12) - self.size)
+		self.rect = pygame.Rect(self.x, self.y, self.size, self.size)
+		self.epsx = int(self.size*0.3) #Epsilon de posicionamento do texto
+		self.epsy = int(self.size*0.1)
+
+	def draw(self, surface):
+		surface.blit(used_font.render(self.text,True,SELECTED_COLOR), (self.x + self.epsx, self.y + self.epsy))
+
+class Slider_Button:
 	def __init__(self):
 		self.slider_value = 60
 		self.dragging = False
@@ -184,7 +237,6 @@ class Slider_Button:
 		self.slider_thumb_rect.x = self.x_st
 
 	def updatePos(self):
-
 		global screen
 
 		self.height_sr = int(screen.actualHeight/49)
@@ -196,7 +248,6 @@ class Slider_Button:
 		self.width_st = self.height_sr
 		self.x_st = screen.originX + self.progress*(self.width_sr - self.width_st)
 		self.y_st = screen.endY + int(self.height_sr*(3)) - self.height_sr
-
 
 		#atualização das variáveis
 		self.slider_rect.height = self.height_sr
@@ -217,9 +268,9 @@ class Slider_Button:
 			self.x_st = screen.originX + self.progress*(self.width_sr - self.width_st)
 			self.slider_thumb_rect.x = self.x_st
 
-	def draw(self, screen):
-		pygame.draw.rect(screen, (50,50,50) , self.slider_rect)
-		pygame.draw.rect(screen, (0,0,255) , self.slider_thumb_rect)
+	def draw(self, surface):
+		pygame.draw.rect(surface, (50,50,50) , self.slider_rect)
+		pygame.draw.rect(surface, (0,0,255) , self.slider_thumb_rect)
 
 '''
 Classe Screen -> A classe que gerencia o display do tabuleiro e de todas as outras informações necessárias
@@ -240,16 +291,18 @@ class Screen:
 	def __init__(self, width, height):
 		self.buttons = []
 		self.sliders = []
+		self.numberBoxes = []
+		self.floatingTexts = []
 		self.update(width,height)
 
 	def size(self):
 		return [self.width, self.height]
 
 	def update(self, width, height):
-		global board
+		global board, used_font
 		self.width = width
 		self.height = height
-
+  
 		#Atualização das variáveis de posicionamento: manipuladas com constantes pensadas para a tela ficar visualmente boa apesar do aspect ratio alterar de acordo com o tamanho da janela e do tabuleiro
 		self.scaling = int(min((width * (12/16))/board.cols , (height * (7/9)/board.rows)))
 		self.expectedWidth = width*(12/16)
@@ -257,6 +310,7 @@ class Screen:
 
 		self.actualWidth = self.scaling*board.cols
 		self.actualHeight = self.scaling*board.rows
+		used_font = pygame.font.Font(None, int(self.actualHeight/20))
   
 		self.originX = int(width/16 + (self.expectedWidth-self.actualWidth)/2)
 		self.originY = int(height/9 + (self.expectedHeight-self.actualHeight)/2)
@@ -269,12 +323,24 @@ class Screen:
 
 		for sl in self.sliders:
 			sl.updatePos()
+
+		for nb in self.numberBoxes:
+			nb.updatePos()
+   
+		for ft in self.floatingTexts:
+			ft.updatePos()
   
 	def addButton(self, newButton):
 		self.buttons.append(newButton)
 
 	def addSlider(self, newSlider):
 		self.sliders.append(newSlider)
+
+	def addNumberBox(self, newNumberBox):
+		self.numberBoxes.append(newNumberBox)
+  
+	def addFloatingText(self, newFloatingText):
+		self.floatingTexts.append(newFloatingText)
 
 
 # Funções
@@ -312,6 +378,12 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 
 	for sl in screen.sliders:
 		sl.draw(surface)
+
+	for nb in screen.numberBoxes:
+		nb.draw(surface)
+  
+	for ft in screen.floatingTexts:
+		ft.draw(surface)
 
 #Função para executar um evento que ocorre de forma imediata, por exemplo, pausar o jogo
 def launchEventOnce(type):
@@ -386,14 +458,14 @@ def setTileStates(i,j,type,setmode):
 			model.cell_layer.set_cell((tile[0],tile[1]),True)
 
 def runGame():
-	global screen, board
-	pygame.init()
+	global screen, board, used_font
 	gameRunning = True; updateCounter = 1; microTime = updateCounter
  
 	#Variáveis do cursor
 	grabbed = False; grabType = 999; cursorPaintMode = 0
  
 	#Superfície da tela
+	used_font = pygame.font.Font(None, 32)
 	pySurface = pygame.display.set_mode(screen.size(),pygame.RESIZABLE)
 	timer = pygame.time.Clock()
 
@@ -454,7 +526,6 @@ def runGame():
 			
 			#Cliques esquerdos do mouse em botões ou em tiles
 			elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
-
 				#Verifica se o botão deslizando está sendo acionado e atualiza seu estado
 				for sl in screen.sliders:
 					if sl.slider_thumb_rect.collidepoint(event.pos): 
@@ -472,12 +543,15 @@ def runGame():
 							else: #Clique para ativação ou mudança de botão selecionado
 								if grabType in CLICKABLE_BUTTONS:
 									screen.buttons[grabType-1].selected = False
+								elif grabType in NUMBER_BOXES:
+									screen.numberBoxes[grabType-20].selected = False
 								grabbed = True
 								grabType = bt.action
 								screen.buttons[grabType-1].selected = True
 							break
 						else: #Botões de ativação imediata, como pause
 							launchEventOnce(bt.action)
+
 				#Se foi clicado com um botão ativado, ou coloca uma figura, ou altera o paintMode, que segue ativado até soltar o botão
 				if validTile and grabbed:
 					if grabType in FIGURE_BUTTONS:
@@ -485,27 +559,57 @@ def runGame():
 					elif grabType in LIFE_BUTTONS:
 						cursorPaintMode = grabType
       
+				#Verifica se foi clicado em um NumberBox
+				for nb in screen.numberBoxes:
+					if nb.rect.collidepoint(event.pos):
+						if grabbed and grabType == nb.action:
+							grabbed = False
+							nb.selected = False
+						elif not grabbed:
+							grabbed = True
+							grabType = nb.action
+							nb.selected = True
+						elif grabbed and grabType != nb.action:
+							if grabType in NUMBER_BOXES:
+								screen.numberBoxes[grabType-20].selected = False
+							elif grabType in CLICKABLE_BUTTONS:
+								screen.buttons[grabType-1].selected = False
+							grabbed = True
+							grabType = nb.action
+							nb.selected = True
+						
+      
 			#Soltar o botão, desativa o paintmode se ativado
 			elif event.type == pygame.MOUSEBUTTONUP:
 				if grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
      
 			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
+				global model
 				if event.key == pygame.K_p: #P = Pausar
 					launchEventOnce(PAUSE_TIME)
      
+				if event.key >= pygame.K_1 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
+					screen.numberBoxes[grabType-20].value = (event.key - pygame.K_1 + 1)
+					screen.numberBoxes[grabType-20].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
+					model.updateRule(grabType-20,(event.key - pygame.K_1 + 1))
+     
 				elif event.key == pygame.K_ESCAPE: #Esc = Cancelar botão que está ativo
 					grabbed = False
-					if grabType < PAUSE_TIME:
+					if grabType in CLICKABLE_BUTTONS:
 						screen.buttons[grabType-1].selected = False
+					elif grabType in NUMBER_BOXES:
+						screen.numberBoxes[grabType-20].selected = False
       
 				elif event.key == pygame.K_1: #1 = selecionar "Reviver células"
 					if grabbed and grabType == REVIVE_CELL:
 						grabbed = False
 						screen.buttons[grabType-1].selected = False
-					else:
-						if grabType < PAUSE_TIME:
+					elif not grabbed or (grabType not in NUMBER_BOXES):
+						if grabType in CLICKABLE_BUTTONS:
 							screen.buttons[grabType-1].selected = False
+						elif grabType in NUMBER_BOXES:
+							screen.numberBoxes[grabType-20].selected = False
 						grabbed = True
 						grabType = REVIVE_CELL
 						screen.buttons[grabType-1].selected = True
@@ -514,9 +618,11 @@ def runGame():
 					if grabbed and grabType == KILL_CELL:
 						grabbed = False
 						screen.buttons[grabType-1].selected = False
-					else:
-						if grabType < PAUSE_TIME:
+					elif not grabbed or (grabType not in NUMBER_BOXES):
+						if grabType in CLICKABLE_BUTTONS:
 							screen.buttons[grabType-1].selected = False
+						elif grabType in NUMBER_BOXES:
+							screen.numberBoxes[grabType-20].selected = False
 						grabbed = True
 						grabType = KILL_CELL
 						screen.buttons[grabType-1].selected = True
@@ -539,7 +645,8 @@ def runGame():
 def generateConwayGame(isRandom = False):
 	#Tabuleiro inicial
 	global model, board, screen
-	model = conwayModel.GameOfLifeModel(rows=35,cols=60)
+	pygame.init()
+	model = conwayModel.GameOfLifeModel(rows=45,cols=80)
 	if isRandom:
 		model.randomize(0.50)
 
@@ -562,15 +669,20 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(SUMMON_LEGS,10,IMG_LEGS))
 	screen.addButton(Button(SUMMON_XPENTOMINO,11,IMG_XPENTOMINO))
 	screen.addButton(Button(SUMMON_LONGHOOK,12,IMG_LONGHOOK))
- 
+
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
 	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
-
-	screen.addSlider(Slider_Button())
+ 
+	#Caixas numéricas de alterar regras e textos
+	screen.addFloatingText(Floating_Text("Renascimentos:",30))
+	screen.addFloatingText(Floating_Text("Sobrevive:   ≥        ≤ ",31))
+	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,38,3))
+	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,37,2))
+	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,41,3))
 
 	runGame()
 
