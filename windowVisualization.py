@@ -474,11 +474,26 @@ def runGame():
 	board.update(False)
 	screen.update(screen.width, screen.height)
 
+	min_update_counter = 0.1
+	max_update_counter = 30
+
+	pySurface = pygame.display.set_mode(screen.size(), pygame.RESIZABLE)
+	timer = pygame.time.Clock()
+
+	
+
 	while(gameRunning):
      
 		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
 		#updateCounter é o número de ticks necessários para uma atualização no tabuleiro, pode ser controlado
+		
 		timer.tick(FPS)
+		for sl in screen.sliders:
+			if sl:
+				updateCounter = int(min_update_counter + (max_update_counter - min_update_counter) * (1 - sl.progress))
+		
+		
+
 		microTime -= 1
 		if microTime <= 0:
 			microTime = updateCounter
@@ -585,6 +600,8 @@ def runGame():
 			elif event.type == pygame.MOUSEBUTTONUP:
 				if grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
+				for sl in screen.sliders:
+					sl.dragging = False
      
 			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
 				global model
@@ -637,6 +654,8 @@ def runGame():
 		for sl in screen.sliders:
 			sl.updateThumb(mousePos)
 
+		
+
 		#Update da tela
 		pySurface.fill(BACKGROUND_COLOR)
 		drawCurrentGame(pySurface)
@@ -678,13 +697,15 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
 	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
- 
+	
 	#Caixas numéricas de alterar regras e textos
 	screen.addFloatingText(Floating_Text("Renascimentos:",30))
 	screen.addFloatingText(Floating_Text("Sobrevive:   ≥        ≤ ",31))
 	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,38,3))
 	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,37,2))
 	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,41,3))
+
+	screen.addSlider(Slider_Button())
 
 	runGame()
 
