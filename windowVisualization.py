@@ -474,11 +474,26 @@ def runGame():
 	board.update(False)
 	screen.update(screen.width, screen.height)
 
+	min_update_counter = 0.1
+	max_update_counter = 30
+
+	pySurface = pygame.display.set_mode(screen.size(), pygame.RESIZABLE)
+	timer = pygame.time.Clock()
+
+	
+
 	while(gameRunning):
      
 		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
 		#updateCounter é o número de ticks necessários para uma atualização no tabuleiro, pode ser controlado
+		
 		timer.tick(FPS)
+		for sl in screen.sliders:
+			if sl:
+				updateCounter = int(min_update_counter + (max_update_counter - min_update_counter) * (1 - sl.progress))
+		
+		
+
 		microTime -= 1
 		if microTime <= 0:
 			microTime = updateCounter
@@ -638,6 +653,8 @@ def runGame():
 		#Update do Slider
 		for sl in screen.sliders:
 			sl.updateThumb(mousePos)
+
+		
 
 		#Update da tela
 		pySurface.fill(BACKGROUND_COLOR)
