@@ -5,7 +5,7 @@ from mesa.space import PropertyLayer
 from scipy.signal import convolve2d
 
 class GameOfLifeModel(Model):
-	def __init__(self, rows=10, cols=10):
+	def __init__(self, rows=10, cols=10, mode="deterministic", rounds=10):
 		super().__init__()
 		# Inicializa a camada de propriedades para os estados das células
 		self.cell_layer = PropertyLayer("cells", rows, cols, False, dtype=bool)
@@ -27,6 +27,8 @@ class GameOfLifeModel(Model):
 		self.vizInf = 2 #Sobrevive se quantidade de vizinho estiver em [vizInf, vizSup]
 		self.vizSup = 3 
 		self.vizRen = 3 #Quantidade de vizinhos para renascer
+		self.mode = mode  # 'deterministic' or 'probabilistic'
+		self.rounds = rounds  # Number of rounds to run
 
 	def step(self):
 		# Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
@@ -44,11 +46,23 @@ class GameOfLifeModel(Model):
 		# 1. Uma célula viva com 2 ou 3 vizinhos vivos sobrevive, caso contrário, morre.
 		# 2. Uma célula morta com exatamente 3 vizinhos vivos torna-se viva.
 		# Essas regras são implementadas usando operações lógicas na grade.
-		self.cell_layer.data = np.logical_or(
-			np.logical_and(self.cell_layer.data, np.logical_and((neighbor_count >= self.vizInf),(neighbor_count <= self.vizSup))),
-			# Regra para células vivas
-			np.logical_and(~self.cell_layer.data, neighbor_count == self.vizRen)  # Regra para células mortas
-		)
+		
+  
+		# Apply deterministic or probabilistic rules
+		if self.mode == "deterministic":
+			# Deterministic rules (same as classic Game of Life)
+			self.cell_layer.data = np.logical_or(
+				np.logical_and(self.cell_layer.data, np.logical_and((neighbor_count >= self.vizInf),(neighbor_count <= self.vizSup))),
+				# Regra para células vivas
+				np.logical_and(~self.cell_layer.data, neighbor_count == self.vizRen)  # Regra para células mortas
+			)
+		elif self.mode == "probabilistic":
+			# Probabilistic rules: probability of being alive is proportional to the number of live neighbors
+			probabilities = neighbor_count / 8.0  # Normalize to get probabilities (max neighbors = 8)
+			self.cell_layer.data = np.logical_and(
+       			np.random.rand(self.rows, self.cols) < probabilities,
+				True
+        	)
 
 		# Métricas
 		self.alive_count = np.sum(self.cell_layer.data)
