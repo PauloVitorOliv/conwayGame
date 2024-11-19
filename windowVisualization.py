@@ -88,6 +88,7 @@ IMG_PAUSE = pygame.image.load("images/pauseTime.png")
 IMG_BORDER = pygame.image.load("images/border.png")
 IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
 IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
+IMG_SPEED = pygame.image.load("images/icon_speed.png")
 
 # Classes
 '''
@@ -377,6 +378,10 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
 		if bt.selected:
 			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
+
+	coordx=screen.originX + screen.sliders[0].width_sr
+	coordy=screen.endY + int(2*screen.sliders[0].height_sr)
+	surface.blit(pygame.transform.scale(IMG_SPEED, (int(3*screen.sliders[0].height_sr), int(3*screen.sliders[0].height_sr))), (coordx, coordy))
 
 	for sl in screen.sliders:
 		sl.draw(surface)
