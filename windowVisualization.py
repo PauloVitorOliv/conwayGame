@@ -13,7 +13,8 @@ BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
-
+DEAD_PERMANENTE = (0,0,0) # COr de uma célula permanentemente morta
+permanently_killed = set()
 # Variáveis Globais
 boardPaused = False
 model = None #Instância do modelo mesa
@@ -39,21 +40,22 @@ SUMMON_LONGHOOK = 12
 #Constantes de ação dos botões: gerais
 REVIVE_CELL = 13
 KILL_CELL = 14
-PAUSE_TIME = 15
-GENERATE_BOARD = 16
-CLEAR_BOARD = 17
+KILL_EVER = 15
+PAUSE_TIME = 16
+GENERATE_BOARD = 17
+CLEAR_BOARD = 18
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
 
 # Tipos de botões
-CONFIG_BUTTONS = range(13,18)
+CONFIG_BUTTONS = range(13,19)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,15)
-CLICKABLE_BUTTONS = range(1,15)
+CLICKABLE_BUTTONS = range(1,16)
 PAUSE_BUTTON = 15
-GENERATE_BUTTON = range(16,18)
+GENERATE_BUTTON = range(16,19)
 
 # Tipos de cursor
 CURSOR_FREE = 0
@@ -76,45 +78,37 @@ IMG_LONGHOOK = pygame.image.load("images/longhook.png")
 
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
+IMG_DEADPERMANENTE = pygame.image.load("images/caveira.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
 IMG_BORDER = pygame.image.load("images/border.png")
 IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
 IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 
-# Classes
-'''
-Classe Tile -> A menor unidade do jogo da vida de conway
-	state: representa se a célula está viva ou morta
-	selected: True se o usuário está com o mouse por cima da célula no momento
 
-	change(): muda o estado da célula (na interface gráfica)
-	live(): revive a célula (na interface gráfica)
-	die(): mata a célula (na interface gráfica)
-'''
+
 
 class Tile:
 	def __init__(self):
 		self.state = DEAD
 		self.selected = False
+		self.is_permanently_dead = False    
 
 	def change(self):
 		self.state = 1 - self.state
 
 	def live(self):
 		self.state = ALIVE
+		if not self.is_permanently_dead:  # Se não estiver permanentemente morta, ela pode voltar a viver
+			self.ALIVE = True  
 
 	def die(self):
 		self.state = DEAD
+		self.is_permanently_dead = True   
+# Certifique-se de que sua classe de células (Tile) tenha uma variável `is_permanently_dead`
 
-'''
-Classe Board -> Possui um conjunto de tiles e uma instância de model, representa o tabuleiro do jogo
-	rows: quantidade de linhas do tabuleiro
-	cols: quantidade de colunas do tabuleiro
-	tiles: matriz de tiles, representa as unidades gráficas correspondentes ao jogo da vida.
- 
-	boardDims(): retorna rows e cols, as dimensões do tabuleiro
-	update(): atualiza as casas do tabuleiro, o parâmetro step indica se deve apenas tornar o tabuleiro gráfico atualizado em relação ao do modelo ou primeiro atualizar o modelo e depois atualizar o tabuleiro gráfico
-'''
+          
+
+
 
 class Board:
 	def __init__(self):
@@ -137,17 +131,6 @@ class Board:
 				if self.tiles[i][j].state != model.cell_layer.data[i][j]:
 					self.tiles[i][j].change()
 
-'''
-Classe Button -> Informações necessárias para representação de um botão na interface gráfica
-	action: ID de ação que o botão faz, pode ser uma figura ou configuração
-	slot: que posição o botão ocupará na tela, cada slot tem um significado:
-		slots 1 à 12 -> botões de figura, alinhados alternadamente nas linhas 1 à 6 na parte à direita do tabuleiro
-		slots 13+ -> botões de configuração, alinhados em fileira acima do tabuleiro
-	image: imagem do botão
-	selected: propriedade que mostra se o botão está no momento clicado ou não
-	updatePos(): atualiza as dimensões e posições do botão para o estado atual da tela
-
-'''
 
 class Button:
 	def __init__(self, act, slot, img):
@@ -221,20 +204,7 @@ class Slider_Button:
 		pygame.draw.rect(screen, (50,50,50) , self.slider_rect)
 		pygame.draw.rect(screen, (0,0,255) , self.slider_thumb_rect)
 
-'''
-Classe Screen -> A classe que gerencia o display do tabuleiro e de todas as outras informações necessárias
-	buttons: conjunto de instâncias da classe Button, representando os botões da interface
- 
-	Variáveis usadas para calcular posicionamento:
-		scaling: multiplicador usado de tamanho para os itens, varia de acordo com o tamanho da tela
-		originX, originY, endX, endY: Posições-chave para posicionamento de itens na tela
-		width, height: dimensões da tela
-		expectedWidth, expectedHeight: dimensões esperadas do tabuleiro na tela se fosse ele estivesse em aspect ratio ideal, usado para calcular posições
-		actualWidth, actualHeight: dimensões atuais do tabuleiro
 
-	update(): atualiza posições de tudo presente na tela dadas as novas largura e altura da tela
-	addButton(): adiciona um novo botão à lista buttons
-'''
 
 class Screen:
 	def __init__(self, width, height):
@@ -278,71 +248,103 @@ class Screen:
 
 
 # Funções
-def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
-	global board, screen
+def drawCurrentGame(surface):  # Desenha o estado atual da simulação na tela
+    global board, screen
 
-	#Define variáveis relevantes: tamanho de um tile e borda dele
-	gridSize = board.boardDims()
-	tileSize = screen.scaling
-	tileBorder = screen.scaling/16
-	if tileSize < 2:
-		tileBorder = 0 #Se for pequeno demais, sem borda
+    # Define variáveis relevantes: tamanho de um tile e borda dele
+    gridSize = board.boardDims()
+    tileSize = screen.scaling
+    tileBorder = screen.scaling / 16
+    if tileSize < 2:
+        tileBorder = 0  # Se for pequeno demais, sem borda
 
-	for i in range(gridSize[0]):
-		for j in range(gridSize[1]):
-			#Para cada tile, define a posição, cor e tamanho dele e desenha retângulos correspondentes a ele e sua borda
-			xPos = j*screen.scaling + screen.originX
-			yPos = i*screen.scaling + screen.originY
-			if board.tiles[i][j].selected == True:
-				board.tiles[i][j].selected = False
-				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
-				pygame.draw.rect(surface,SELECTED_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
-			elif board.tiles[i][j].state == ALIVE:
-				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
-				pygame.draw.rect(surface,ALIVE_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
-			else:
-				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
-				pygame.draw.rect(surface,DEAD_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
+    for i in range(gridSize[0]):
+        for j in range(gridSize[1]):
+            # Para cada tile, define a posição, cor e tamanho dele e desenha retângulos correspondentes a ele e sua borda
+            xPos = j * screen.scaling + screen.originX
+            yPos = i * screen.scaling + screen.originY
 
-	#Coloca na tela as imagens dos botões na posição correspondente
-	for bt in screen.buttons:
-		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
-		if bt.selected:
-			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
+            # Verifica se a célula está permanentemente morta
+            if (i, j) in permanently_killed:
+                # Se a célula está permanentemente morta, desenha ela de preto
+                pygame.draw.rect(surface, BORDER_COLOR, (xPos, yPos, screen.scaling, screen.scaling))
+                pygame.draw.rect(surface, (0, 0, 0), (xPos + tileBorder, yPos + tileBorder, tileSize - tileBorder, tileSize - tileBorder))  # Preto
+            elif board.tiles[i][j].selected:
+                board.tiles[i][j].selected = False
+                pygame.draw.rect(surface, BORDER_COLOR, (xPos, yPos, screen.scaling, screen.scaling))
+                pygame.draw.rect(surface, SELECTED_COLOR, (xPos + tileBorder, yPos + tileBorder, tileSize - tileBorder, tileSize - tileBorder))
+            elif board.tiles[i][j].state == ALIVE:
+                pygame.draw.rect(surface, BORDER_COLOR, (xPos, yPos, screen.scaling, screen.scaling))
+                pygame.draw.rect(surface, ALIVE_COLOR, (xPos + tileBorder, yPos + tileBorder, tileSize - tileBorder, tileSize - tileBorder))
+            else:
+                pygame.draw.rect(surface, BORDER_COLOR, (xPos, yPos, tileSize, tileSize))
+                pygame.draw.rect(surface, DEAD_COLOR, (xPos + tileBorder, yPos + tileBorder, tileSize - tileBorder, tileSize - tileBorder))
 
-	for sl in screen.sliders:
-		sl.draw(surface)
+    # Coloca na tela as imagens dos botões na posição correspondente
+    for bt in screen.buttons:
+        surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
+        if bt.selected:
+            surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
+
+    # Desenha os sliders
+    for sl in screen.sliders:
+        sl.draw(surface)
+
 
 #Função para executar um evento que ocorre de forma imediata, por exemplo, pausar o jogo
 def launchEventOnce(type):
-	global boardPaused, screen, board, model
-	if type == PAUSE_TIME:
-		boardPaused = not boardPaused
-		screen.buttons[PAUSE_TIME-1].selected = boardPaused
-	elif type == GENERATE_BOARD:
-		r, c = board.boardDims()
-		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
-		newModel.randomize(random.betavariate(7,7)) #Distribuição beta probabilística pois tabuleiros muito próximos de 0% ou 100% de células ativas não são muito interessantes
-		model.cell_layer = newModel.cell_layer
-		board.update(False)
-	elif type == CLEAR_BOARD:
-		r, c = board.boardDims()
-		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
-		model.cell_layer = newModel.cell_layer
-		board.update(False)
+    global boardPaused, screen, board, model, permanently_killed
+    if type == PAUSE_TIME:
+        boardPaused = not boardPaused
+        screen.buttons[PAUSE_TIME-1].selected = boardPaused
+    elif type == GENERATE_BOARD:
+        r, c = board.boardDims()
+        newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
+        newModel.randomize(random.betavariate(7,7)) #Distribuição beta probabilística
+        model.cell_layer = newModel.cell_layer
+        board.update(False)
+    elif type == CLEAR_BOARD:
+        r, c = board.boardDims()
+        newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
+        model.cell_layer = newModel.cell_layer
+        permanently_killed.clear()  # Limpa as células permanentemente mortas
+        board.update(False)
+
+
 
 #Pinta o quadrado de posição i,j, matando ou revivendo a célula, de acordo com a ocasião necessária
-def paintTile(i,j,type):
-	global board, model
-	i %= board.rows; j %= board.cols
-	if type == REVIVE_CELL:
-		board.tiles[i][j].live()
-		model.cell_layer.set_cell((i,j),True)
-	elif type == KILL_CELL:
-		board.tiles[i][j].die()
-		model.cell_layer.set_cell((i,j),False)
+def paintTile(i, j, type):
+    global board, model, permanently_killed
+    
+    # Verifica se a célula está permanentemente morta antes de permitir qualquer ação
+    if (i, j) in permanently_killed:
+        return  # Não faz nada se a célula estiver permanentemente morta
+
+    i %= board.rows
+    j %= board.cols
+
+    if type == REVIVE_CELL:
+        board.tiles[i][j].live()
+        model.cell_layer.set_cell((i, j), True)
+    elif type == KILL_CELL:
+        board.tiles[i][j].die()
+        model.cell_layer.set_cell((i, j), False)
+    elif type == KILL_EVER:
+        # Marca a célula como permanentemente morta
+        permanently_killed.add((i, j))
+        board.tiles[i][j].die()  # Matar a célula imediatamente
+        model.cell_layer.set_cell((i, j), False)
+        board.tiles[i][j].color = (0, 0, 0)  # Altera a cor da célula para preta
+
+
+
+
 
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
+
+# Variável global para armazenar células permanentemente mortas
+permanently_killed = set()
+
 def setTileStates(i,j,type,setmode):
 	global model, board
 	tilist = [] #Guarda as posições da figura
@@ -385,156 +387,200 @@ def setTileStates(i,j,type,setmode):
 			board.tiles[tile[0]][tile[1]].live()
 			model.cell_layer.set_cell((tile[0],tile[1]),True)
 
+
+def killEver(i, j):
+    """Função para matar permanentemente uma célula."""
+    board.tiles[i][j].die()  # Marca a célula como permanentemente morta
+    board.tiles[i][j].color = (0, 0, 0)  # Pode alterar a cor da célula para indicar que está morta
+    model.cell_layer.set_cell((i, j), False)  # Impede que a célula seja ativada novamente
+
+
+
+
+
 def runGame():
-	global screen, board
-	pygame.init()
-	gameRunning = True; updateCounter = 1; microTime = updateCounter
- 
-	#Variáveis do cursor
-	grabbed = False; grabType = 999; cursorPaintMode = 0
- 
-	#Superfície da tela
-	pySurface = pygame.display.set_mode(screen.size(),pygame.RESIZABLE)
-	timer = pygame.time.Clock()
+    global screen, board, permanently_killed  # Garantir que permanently_killed está global
+    pygame.init()
+    gameRunning = True
+    updateCounter = 1
+    microTime = updateCounter
 
-	board.update(False)
-	screen.update(screen.width, screen.height)
+    # Variáveis do cursor
+    grabbed = False
+    grabType = 999
+    cursorPaintMode = 0
 
-	while(gameRunning):
-     
-		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
-		#updateCounter é o número de ticks necessários para uma atualização no tabuleiro, pode ser controlado
-		timer.tick(FPS)
-		microTime -= 1
-		if microTime <= 0:
-			microTime = updateCounter
-			board.update()
+    # Superfície da tela
+    pySurface = pygame.display.set_mode(screen.size(), pygame.RESIZABLE)
+    timer = pygame.time.Clock()
 
-		#Controle de cursor
-		mousePos = pygame.mouse.get_pos()
-		cursorType = CURSOR_SELECTED if grabbed else CURSOR_FREE
+    board.update(False)
+    screen.update(screen.width, screen.height)
 
-		if cursorType == 0:
-			for bt in screen.buttons: #Se estiver passando o mouse em um botão, altera o cursor
-				if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
-					cursorType = CURSOR_AIM
-					break
+    while(gameRunning):
 
-		#Ativamente define o cursor correto
-		if cursorType == CURSOR_FREE: 
-			pygame.mouse.set_cursor(*pygame.cursors.arrow)
-		elif cursorType == CURSOR_AIM:
-			pygame.mouse.set_cursor(*pygame.cursors.broken_x)
-		else:
-			pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+        # Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks
+        timer.tick(FPS)
+        microTime -= 1
+        if microTime <= 0:
+            microTime = updateCounter
+            board.update()
 
-		#Posição do tile em que o mouse está em cima, pode não ser válido, mas se for, é atestado em validTile
-		tileRow = int((mousePos[1] - screen.originY)/screen.scaling + 1)-1
-		tileCol = int((mousePos[0] - screen.originX + 1)/screen.scaling + 1)-1 #Adição e subtração do -1 para evitar int(-0.9) = int(0.9), pela natureza da aproximação int do python
-		validTile = (tileRow < board.rows and tileCol < board.cols and tileRow >= 0 and tileCol >= 0)
+        # Controle de cursor
+        mousePos = pygame.mouse.get_pos()
+        cursorType = CURSOR_SELECTED if grabbed else CURSOR_FREE
 
-		if validTile and grabbed: #Se estiver clicado em uma figura, tenta prever ela na posição atual
-			setTileStates(tileRow,tileCol,grabType,PREVIEW_FIGURE)
+        if cursorType == 0:
+            for bt in screen.buttons:  # Se estiver passando o mouse em um botão, altera o cursor
+                if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
+                    cursorType = CURSOR_AIM
+                    break
 
-		for event in pygame.event.get(): #Gerenciamento dos eventos pygame
-			if event.type == pygame.QUIT:
-				gameRunning = False
-    
-			#Eventos de tela: atualiza os objetos caso a tela altere de tamanho
-			elif event.type == pygame.VIDEORESIZE:
-				screen.update(event.w,event.h)
-    
-			elif event.type == pygame.WINDOWMAXIMIZED:
-				w, h = pygame.display.get_window_size()
-				screen.update(w,h)
-    
-			elif event.type == pygame.WINDOWMINIMIZED:
-				w, h = pygame.display.get_window_size()
-				screen.update(w,h)
-			
-			#Cliques esquerdos do mouse em botões ou em tiles
-			elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+        # Ativamente define o cursor correto
+        if cursorType == CURSOR_FREE:
+            pygame.mouse.set_cursor(*pygame.cursors.arrow)
+        elif cursorType == CURSOR_AIM:
+            pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+        else:
+            pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
-				#Verifica se o botão deslizando está sendo acionado e atualiza seu estado
-				for sl in screen.sliders:
-					if sl.slider_thumb_rect.collidepoint(event.pos): 
-						sl.dragging = True
-					else:
-						sl.dragging = False
+        # Posição do tile em que o mouse está em cima
+        tileRow = int((mousePos[1] - screen.originY) / screen.scaling + 1) - 1
+        tileCol = int((mousePos[0] - screen.originX + 1) / screen.scaling + 1) - 1
+        validTile = (tileRow < board.rows and tileCol < board.cols and tileRow >= 0 and tileCol >= 0)
 
-				for bt in screen.buttons:
-					#Verifica se clicou em um botão para ativar o evento correspondente
-					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
-						if bt.action in CLICKABLE_BUTTONS: #Botões clicáveis: marcáveis com select
-							if grabbed and grabType == bt.action: #Apenas clique para desativação
-								grabbed = False
-								screen.buttons[grabType-1].selected = False
-							else: #Clique para ativação ou mudança de botão selecionado
-								if grabType in CLICKABLE_BUTTONS:
-									screen.buttons[grabType-1].selected = False
-								grabbed = True
-								grabType = bt.action
-								screen.buttons[grabType-1].selected = True
-							break
-						else: #Botões de ativação imediata, como pause
-							launchEventOnce(bt.action)
-				#Se foi clicado com um botão ativado, ou coloca uma figura, ou altera o paintMode, que segue ativado até soltar o botão
-				if validTile and grabbed:
-					if grabType in FIGURE_BUTTONS:
-						setTileStates(tileRow,tileCol,grabType,ACTIVATE_FIGURE)
-					elif grabType in LIFE_BUTTONS:
-						cursorPaintMode = grabType
-      
-			#Soltar o botão, desativa o paintmode se ativado
-			elif event.type == pygame.MOUSEBUTTONUP:
-				if grabType in LIFE_BUTTONS:
-					cursorPaintMode = 0
-     
-			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
-				if event.key == pygame.K_p: #P = Pausar
-					launchEventOnce(PAUSE_TIME)
-     
-				elif event.key == pygame.K_ESCAPE: #Esc = Cancelar botão que está ativo
-					grabbed = False
-					if grabType < PAUSE_TIME:
-						screen.buttons[grabType-1].selected = False
-      
-				elif event.key == pygame.K_1: #1 = selecionar "Reviver células"
-					if grabbed and grabType == REVIVE_CELL:
-						grabbed = False
-						screen.buttons[grabType-1].selected = False
-					else:
-						if grabType < PAUSE_TIME:
-							screen.buttons[grabType-1].selected = False
-						grabbed = True
-						grabType = REVIVE_CELL
-						screen.buttons[grabType-1].selected = True
-      
-				elif event.key == pygame.K_2: #2 = selecionar "Matar células"
-					if grabbed and grabType == KILL_CELL:
-						grabbed = False
-						screen.buttons[grabType-1].selected = False
-					else:
-						if grabType < PAUSE_TIME:
-							screen.buttons[grabType-1].selected = False
-						grabbed = True
-						grabType = KILL_CELL
-						screen.buttons[grabType-1].selected = True
+        if validTile and grabbed:  # Se estiver clicado em uma figura, tenta prever ela na posição atual
+            setTileStates(tileRow, tileCol, grabType, PREVIEW_FIGURE)
 
-		#Modo de pintura: ativação/desativação de células individuais
-		if validTile and cursorPaintMode in LIFE_BUTTONS:
-			paintTile(tileRow,tileCol,grabType)	
+        for event in pygame.event.get():  # Gerenciamento dos eventos pygame
+            if event.type == pygame.QUIT:
+                gameRunning = False
 
-		#Update do Slider
-		for sl in screen.sliders:
-			sl.updateThumb(mousePos)
+            # Eventos de tela: atualiza os objetos caso a tela altere de tamanho
+            elif event.type == pygame.VIDEORESIZE:
+                screen.update(event.w, event.h)
 
-		#Update da tela
-		pySurface.fill(BACKGROUND_COLOR)
-		drawCurrentGame(pySurface)
-		pygame.display.update()
+            elif event.type == pygame.WINDOWMAXIMIZED:
+                w, h = pygame.display.get_window_size()
+                screen.update(w, h)
 
-	pygame.quit()
+            elif event.type == pygame.WINDOWMINIMIZED:
+                w, h = pygame.display.get_window_size()
+                screen.update(w, h)
+
+            # Cliques esquerdos do mouse em botões ou em tiles
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+
+                # Verifica se o botão deslizando está sendo acionado e atualiza seu estado
+                for sl in screen.sliders:
+                    if sl.slider_thumb_rect.collidepoint(event.pos):
+                        sl.dragging = True
+                    else:
+                        sl.dragging = False
+
+                for bt in screen.buttons:
+                    # Verifica se clicou em um botão para ativar o evento correspondente
+                    if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
+                        if bt.action in CLICKABLE_BUTTONS:  # Botões clicáveis: marcáveis com select
+                            if grabbed and grabType == bt.action:  # Apenas clique para desativação
+                                grabbed = False
+                                screen.buttons[grabType - 1].selected = False
+                            else:  # Clique para ativação ou mudança de botão selecionado
+                                if grabType in CLICKABLE_BUTTONS:
+                                    screen.buttons[grabType - 1].selected = False
+                                grabbed = True
+                                grabType = bt.action
+                                screen.buttons[grabType - 1].selected = True
+                            break
+                        else:  # Botões de ativação imediata, como pause
+                            launchEventOnce(bt.action)
+
+                # Se foi clicado com um botão ativado, ou coloca uma figura, ou altera o paintMode
+                if validTile and grabbed:
+                    if grabType in FIGURE_BUTTONS:
+                        setTileStates(tileRow, tileCol, grabType, ACTIVATE_FIGURE)
+                    elif grabType in LIFE_BUTTONS:
+                        cursorPaintMode = grabType
+
+                    # Se o botão KILL_EVER for ativado, marca a célula como permanentemente morta
+                    if grabType == KILL_EVER:
+                        if (tileRow, tileCol) not in permanently_killed:
+                            permanently_killed.add((tileRow, tileCol))  # Marca a célula como permanentemente morta
+                            setTileStates(tileRow, tileCol, KILL_CELL, ACTIVATE_FIGURE)  # A célula é morta e inutilizada
+
+                    # Se o botão REVIVE_CELL for ativado, reviver a célula
+                    if grabType == REVIVE_CELL:
+                        if (tileRow, tileCol) in permanently_killed:
+                            permanently_killed.remove((tileRow, tileCol))  # Revive a célula
+                            setTileStates(tileRow, tileCol, REVIVE_CELL, ACTIVATE_FIGURE)  # Restaura o estado normal da célula
+
+            # Soltar o botão, desativa o paintmode se ativado
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if grabType in LIFE_BUTTONS:
+                    cursorPaintMode = 0
+
+            elif event.type == pygame.KEYDOWN:  # Pressionamento de teclas
+                if event.key == pygame.K_p:  # P = Pausar
+                    launchEventOnce(PAUSE_TIME)
+
+                elif event.key == pygame.K_ESCAPE:  # Esc = Cancelar botão que está ativo
+                    grabbed = False
+                    if grabType < PAUSE_TIME:
+                        screen.buttons[grabType - 1].selected = False
+
+                elif event.key == pygame.K_1:  # 1 = selecionar "Reviver células"
+                    if grabbed and grabType == REVIVE_CELL:
+                        grabbed = False
+                        screen.buttons[grabType - 1].selected = False
+                    else:
+                        if grabType < PAUSE_TIME:
+                            screen.buttons[grabType - 1].selected = False
+                        grabbed = True
+                        grabType = REVIVE_CELL
+                        screen.buttons[grabType - 1].selected = True
+
+                elif event.key == pygame.K_2:  # 2 = selecionar "Matar células"
+                    if grabbed and grabType == KILL_CELL:
+                        grabbed = False
+                        screen.buttons[grabType - 1].selected = False
+                    else:
+                        if grabType < PAUSE_TIME:
+                            screen.buttons[grabType - 1].selected = False
+                        grabbed = True
+                        grabType = KILL_CELL
+                        screen.buttons[grabType - 1].selected = True
+
+                elif event.key == pygame.K_3:  # 3 = selecionar "Matar células permanentemente"
+                    if grabbed and grabType == KILL_EVER:
+                        grabbed = False
+                        screen.buttons[grabType - 1].selected = False
+                    else:
+                        if grabType < PAUSE_TIME:
+                            screen.buttons[grabType - 1].selected = False
+                        grabbed = True
+                        grabType = KILL_EVER
+                        screen.buttons[grabType - 1].selected = True
+
+        # Modo de pintura: ativação/desativação de células individuais
+        if validTile and cursorPaintMode in LIFE_BUTTONS:
+            paintTile(tileRow, tileCol, grabType)
+
+        # Update do Slider
+        for sl in screen.sliders:
+            sl.updateThumb(mousePos)
+
+        # Update da tela
+        pySurface.fill(BACKGROUND_COLOR)
+        drawCurrentGame(pySurface)
+        pygame.display.update()
+
+    pygame.quit()
+
+
+
+
+
+
 
 def generateConwayGame(isRandom = False):
 	#Tabuleiro inicial
@@ -566,9 +612,11 @@ def generateConwayGame(isRandom = False):
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
-	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
-	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
-	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
+	screen.addButton(Button(KILL_EVER, 15, IMG_DEADPERMANENTE))  # Já está configurado corretamente
+
+	screen.addButton(Button(PAUSE_TIME,16,IMG_PAUSE))
+	screen.addButton(Button(GENERATE_BOARD,17,IMG_GENERATEBOARD))
+	screen.addButton(Button(CLEAR_BOARD,18,IMG_CLEARBOARD))
 
 	screen.addSlider(Slider_Button())
 
