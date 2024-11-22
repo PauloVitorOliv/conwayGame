@@ -22,6 +22,7 @@ model = None #Instância do modelo mesa
 board = None #Instância de Board
 screen = None #Instância de Screen
 used_font = None #Fonte a ser usada
+rotation_count = 0
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
 
@@ -46,16 +47,19 @@ PAUSE_TIME = 15
 GENERATE_BOARD = 16
 CLEAR_BOARD = 17
 
+ROTATION = 19
+
 CHANGE_REVIVAL = 20
 CHANGE_MIN_SURVIVAL = 21
 CHANGE_MAX_SURVIVAL = 22
+
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
 
 # Tipos de botões
-CONFIG_BUTTONS = range(13,18)
+CONFIG_BUTTONS = range(13,20)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,15)
 CLICKABLE_BUTTONS = range(1,15)
@@ -89,6 +93,7 @@ IMG_BORDER = pygame.image.load("images/border.png")
 IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
 IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 IMG_SPEED = pygame.image.load("images/icon_speed.png")
+IMG_ROTATION = pygame.image.load("images/rotation.png")
 
 # Classes
 '''
@@ -383,6 +388,7 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 	coordy=screen.endY + int(2*screen.sliders[0].height_sr)
 	surface.blit(pygame.transform.scale(IMG_SPEED, (int(3*screen.sliders[0].height_sr), int(3*screen.sliders[0].height_sr))), (coordx, coordy))
 
+
 	for sl in screen.sliders:
 		sl.draw(surface)
 
@@ -409,6 +415,9 @@ def launchEventOnce(type):
 		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
 		model.cell_layer = newModel.cell_layer
 		board.update(False)
+	elif type == ROTATION:
+		global rotation_count
+		rotation_count += 1
 
 #Pinta o quadrado de posição i,j, matando ou revivendo a célula, de acordo com a ocasião necessária
 def paintTile(i,j,type):
@@ -421,36 +430,70 @@ def paintTile(i,j,type):
 		board.tiles[i][j].die()
 		model.cell_layer.set_cell((i,j),False)
 
+def rotate(lista, rotation):
+
+	translation = [lista[0][0], lista[0][1]]
+
+	for i in lista: # Translação da figura para a origem
+		i[0] -= translation[0]
+		i[1] -= translation[1]
+
+	for i in lista: # Rotação em torno da origem
+		if rotation % 4 == 0:
+			break
+		if rotation % 4 == 1:
+			i[0], i[1] = -i[1], i[0]
+
+		if rotation % 4 == 2:
+			i[0], i[1] = -i[0], -i[1]
+
+		if rotation % 4 == 3:
+			i[0], i[1] = i[1], -i[0]
+
+	for i in lista: # Desfaz o translação
+		i[0] += translation[0]
+		i[1] += translation[1]
+
+	return lista
+
+def modulo_board(lista):
+	for i in lista:
+		i[0], i[1] = i[0] % board.rows, i[1] % board.cols
+	return lista
+
+
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
 def setTileStates(i,j,type,setmode):
 	global model, board
 	tilist = [] #Guarda as posições da figura
 	if type in LIFE_BUTTONS:
-		tilist += [[i,j]]
+		live_list = [[i,j]]
 	elif type == SUMMON_SQUARE:
-		tilist += [[i,j], [(i-1) % board.rows, (j-1)%board.cols], [i, (j-1)%board.cols], [(i+1) % board.rows, (j-1)%board.cols], [(i-2) % board.rows, (j-2)%board.cols], [(i+2) % board.rows, (j-2)%board.cols], [i, (j-3)%board.cols], [(i-3) % board.rows, (j-4)%board.cols], [(i+3) % board.rows, (j-4)%board.cols], [(i-3) % board.rows, (j-5)%board.cols], [(i+3) % board.rows, (j-5)%board.cols], [(i-2) % board.rows, (j-6)%board.cols], [(i+2) % board.rows, (j-6)%board.cols], [(i-1) % board.rows, (j-7)%board.cols], [i, (j-7)%board.cols], [(i+1) % board.rows, (j-7)%board.cols], [(i-1) % board.rows, (j-16)%board.cols], [i, (j-16)%board.cols], [(i-1) % board.rows, (j-17)%board.cols], [i, (j-17)%board.cols], [(i-3) % board.rows, (j+3)%board.cols], [(i-2) % board.rows, (j+3)%board.cols], [(i-1) % board.rows, (j+3)%board.cols], [(i-3) % board.rows, (j+4)%board.cols], [(i-2) % board.rows, (j+4)%board.cols], [(i-1) % board.rows, (j+4)%board.cols], [(i-4) % board.rows, (j+5)%board.cols], [i, (j+5)%board.cols], [(i-5) % board.rows, (j+7)%board.cols], [(i-4) % board.rows, (j+7)%board.cols], [i, (j+7)%board.cols], [(i+1) % board.rows, (j+7)%board.cols], [(i-3) % board.rows, (j+17)%board.cols], [(i-2) % board.rows, (j+17)%board.cols], [(i-3) % board.rows, (j+18)%board.cols], [(i-2) % board.rows, (j+18)%board.cols]]
+		live_list = [[i,j], [(i-1) , (j-1)], [i, (j-1)], [(i+1) , (j-1)], [(i-2) , (j-2)], [(i+2) , (j-2)], [i, (j-3)], [(i-3) , (j-4)], [(i+3) , (j-4)], [(i-3) , (j-5)], [(i+3) , (j-5)], [(i-2) , (j-6)], [(i+2) , (j-6)], [(i-1) , (j-7)], [i, (j-7)], [(i+1) , (j-7)], [(i-1) , (j-16)], [i, (j-16)], [(i-1) , (j-17)], [i, (j-17)], [(i-3) , (j+3)], [(i-2) , (j+3)], [(i-1) , (j+3)], [(i-3) , (j+4)], [(i-2) , (j+4)], [(i-1) , (j+4)], [(i-4) , (j+5)], [i, (j+5)], [(i-5) , (j+7)], [(i-4) , (j+7)], [i, (j+7)], [(i+1) , (j+7)], [(i-3) , (j+17)], [(i-2) , (j+17)], [(i-3) , (j+18)], [(i-2) , (j+18)]]
 	elif type == SUMMON_BLINKER:
-		tilist +=[[i,j], [(i+1)%board.rows, j], [(i+2)%board.rows, j]]
+		live_list = [[i,j], [(i+1), j], [(i+2), j]]
 	elif type == SUMMON_GLIDER:
-		tilist +=[[i,j], [(i+1)%board.rows, (j+1)%board.cols], [(i+1)%board.rows, (j+2)%board.cols], [(i), (j+2)%board.cols], [(i-1)%board.rows, (j+2)%board.cols]]
+		live_list = [[i,j], [(i+1), (j+1)], [(i+1), (j+2)], [(i), (j+2)], [(i-1), (j+2)]]
 	elif type == SUMMON_LWSS:
-		tilist += [[i,j], [(i+2)%board.rows, j], [(i+2)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+1)%board.cols], [(i-1)%board.rows, (j+2)%board.cols], [(i-1)%board.rows, (j+3)%board.cols], [(i-1)%board.rows, (j+4)%board.cols], [(i), (j+4)%board.cols], [(i+1)%board.rows, (j+4)%board.cols]]
+		live_list = [[i,j], [(i+2), j], [(i+2), (j+3)], [(i-1), (j+1)], [(i-1), (j+2)], [(i-1), (j+3)], [(i-1), (j+4)], [(i), (j+4)], [(i+1), (j+4)]]
 	elif type == SUMMON_BEACON:
-		tilist += [[i,j],[(i+1)%board.rows,j],[i,(j+1)%board.cols],[(i+1)%board.rows,(j+1)%board.cols], [(i+2)%board.rows,(j+2)%board.cols],[(i+3)%board.rows,(j+2)%board.cols],[(i+2)%board.rows,(j+3)%board.cols],[(i+3)%board.rows,(j+3)%board.cols]]
+		live_list = [[i,j],[(i+1),j],[i,(j+1)],[(i+1),(j+1)], [(i+2),(j+2)],[(i+3),(j+2)],[(i+2),(j+3)],[(i+3),(j+3)]]
 	elif type == SUMMON_EATER:
-		tilist += [[i,j],[i,(j+1)%board.cols],[(i-1)%board.rows,j],[(i-2)%board.rows,(j+1)%board.cols],[(i-2)%board.rows,(j+2)%board.cols],[(i-2)%board.rows,(j+3)%board.cols],[(i-3)%board.rows,(j+3)%board.cols]]
+		live_list = [[i,j],[i,(j+1)],[(i-1),j],[(i-2),(j+1)],[(i-2),(j+2)],[(i-2),(j+3)],[(i-3),(j+3)]]
 	elif type == SUMMON_TOAD:
-		tilist += [[i,j],[(i+1)%board.rows,j],[(i+2)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols],[(i+1)%board.rows,(j+3)%board.cols]]
+		live_list = [[i,j],[(i+1),j],[(i+2),(j+1)],[(i-1),(j+2)],[i,(j+3)],[(i+1),(j+3)]]
 	elif type == SUMMON_BEEHIVE:
-		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i+1)%board.rows,(j+2)%board.cols],[(i-1+board.rows)%board.rows,(j+1)%board.cols],[(i-1+board.rows)%board.rows,(j+2)%board.cols],[i,(j+3)%board.cols]]
+		live_list = [[i,j],[(i+1),(j+1)],[(i+1),(j+2)],[(i-1),(j+1)],[(i-1),(j+2)],[i,(j+3)]]
 	elif type == SUMMON_TUB:
-		tilist += [[i,j],[(i+1)%board.rows,(j+1)%board.cols],[(i-1)%board.rows,(j+1)%board.cols],[i,(j+2)%board.cols]]
+		live_list = [[i,j],[(i+1),(j+1)],[(i-1),(j+1)],[i,(j+2)]]
 	elif type == SUMMON_LEGS:
-		tilist += [[i, j], [(i+1) % board.rows, j], [(i+1) % board.rows, (j-1)%board.cols],[(i+1) % board.rows, (j-2)%board.cols],[i, (j-3)%board.cols],[(i-1) % board.rows, (j-3)%board.cols],[(i-2) % board.rows, (j-3)%board.cols],[(i-2) % board.rows, (j-2)%board.cols]]
+		live_list = [[i, j], [(i+1) , j], [(i+1) , (j-1)],[(i+1) , (j-2)],[i, (j-3)],[(i-1) , (j-3)],[(i-2) , (j-3)],[(i-2) , (j-2)]]
 	elif type == SUMMON_XPENTOMINO:
-		tilist += [[i, j], [i, (j+1)%board.cols], [i, (j+2)%board.cols],[(i-1) % board.rows, (j+1)%board.cols],[(i+1) % board.rows, (j+1)%board.cols]]
+		live_list = [[i, j], [i, (j+1)], [i, (j+2)],[(i-1) , (j+1)],[(i+1) , (j+1)]]
 	elif type == SUMMON_LONGHOOK:
-		tilist += [[i, j], [i, (j+1)%board.cols], [(i+1) % board.rows, (j+1)%board.cols],[(i+2) % board.rows, j],[(i+2) % board.rows, (j-1)%board.cols],[(i+2) % board.rows, (j-2)%board.cols],[(i+2) % board.rows, (j-3)%board.cols],[(i+1) % board.rows, (j-3)%board.cols]]
+		live_list = [[i, j], [i, (j+1)], [(i+1) , (j+1)],[(i+2) , j],[(i+2) , (j-1)],[(i+2) , (j-2)],[(i+2) , (j-3)],[(i+1) , (j-3)]]
+	
+	tilist += modulo_board(rotate(live_list, rotation_count))
 
 	'''<FIGURAS>'''
 	#Adicione elif para cada nova figura. tilist é a lista das coordenadas dos pontos afetados, sendo [i,j] o canto	superior esquerdo. Lembre-se de tomar coordenadas diferentes de [i,j] com o módulo, igual usado acima
@@ -513,6 +556,7 @@ def runGame():
 				if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 					cursorType = CURSOR_AIM
 					break
+				
 
 		#Ativamente define o cursor correto
 		if cursorType == CURSOR_FREE: 
@@ -650,6 +694,10 @@ def runGame():
 						grabbed = True
 						grabType = KILL_CELL
 						screen.buttons[grabType-1].selected = True
+				
+				if event.key == pygame.K_r: #r = Rotacionar
+					launchEventOnce(ROTATION)
+						
 
 		#Modo de pintura: ativação/desativação de células individuais
 		if validTile and cursorPaintMode in LIFE_BUTTONS:
@@ -702,6 +750,8 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
 	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
 	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
+
+	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
 	screen.addFloatingText(Floating_Text("Renascimentos:",30))
