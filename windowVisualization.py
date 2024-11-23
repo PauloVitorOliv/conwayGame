@@ -76,6 +76,7 @@ LIFE_BUTTONS = range(13,16)
 CLICKABLE_BUTTONS = range(1,16)
 NUMBER_BOXES = range(22,25)
 GENERATE_BUTTON = range(18,21)
+
 CASSINO_BUTTONS = range(90, 93)
 
 # Tipos de cursor
@@ -106,7 +107,7 @@ IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 IMG_SPEED = pygame.image.load("images/icon_speed.png")
 IMG_ROTATION = pygame.image.load("images/rotation.png")
 IMG_LOGO = pygame.image.load("images/logo.png")
-
+IMG_PURPLE = pygame.image.load("images/sickcell.png")
 IMG_RAISE = pygame.image.load("images/raise.png")
 IMG_LOWER = pygame.image.load("images/lower.png")
 IMG_BET = pygame.image.load("images/bet.png")
