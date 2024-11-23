@@ -11,13 +11,13 @@ import model as conwayModel
 # Constantes Globais
 FPS = 60
 DEAD, ALIVE = False, True #Estados de uma célula: vivo, morto e permanentemente morto
-NONE, INFECTED, PERM_DEAD = 0, 1, 2
+NONE, INFECTED, PERM_DEAD, SICK = 0, 1, 2, 3
 BACKGROUND_COLOR = (32,32,32) #Cor de fundo da simulação
 BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
-DEAD_PERMANENTE_COLOR = (0,0,0)
+DEAD_PERMANENTE_COLOR = (128,128,128)
 INFECTED_COLOR = (160,50,160)
 
 # Variáveis Globais
@@ -48,10 +48,11 @@ SUMMON_LONGHOOK = 12
 REVIVE_CELL = 13
 KILL_CELL = 14
 KILL_EVER = 15
-PAUSE_TIME = 16
-GENERATE_BOARD = 17
-CLEAR_BOARD = 18
-ROTATION = 19
+SICK_CELL = 16
+PAUSE_TIME = 17
+GENERATE_BOARD = 18
+CLEAR_BOARD = 19
+ROTATION = 20
 
 CHANGE_REVIVAL = 22
 CHANGE_MIN_SURVIVAL = 23
@@ -72,11 +73,10 @@ ACTIVATE_FIGURE = True
 # Tipos de botões
 CONFIG_BUTTONS = range(13,22)
 FIGURE_BUTTONS = range(1,13)
-LIFE_BUTTONS = range(13,16)
-CLICKABLE_BUTTONS = range(1,16)
+LIFE_BUTTONS = range(13,17)
+CLICKABLE_BUTTONS = range(1,17)
 NUMBER_BOXES = range(22,25)
 GENERATE_BUTTON = range(18,21)
-
 CASSINO_BUTTONS = range(90, 93)
 
 # Tipos de cursor
@@ -97,7 +97,7 @@ IMG_TUB = pygame.image.load("images/tub.png")
 IMG_LEGS = pygame.image.load("images/legs.png")
 IMG_XPENTOMINO = pygame.image.load("images/xpentomino.png")
 IMG_LONGHOOK = pygame.image.load("images/longhook.png")
-IMG_DEADPERMANENTE = pygame.image.load("images/caveira.png")
+IMG_DEADPERMANENTE = pygame.image.load("images/permadead.png")
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
@@ -426,9 +426,12 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 			elif board.tiles[i][j].state == ALIVE:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
 				pygame.draw.rect(surface,ALIVE_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
-			else:
+			elif board.tiles[i][j].condition == DEAD:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
 				pygame.draw.rect(surface,DEAD_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
+			else:
+				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
+				pygame.draw.rect(surface,INFECTED_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
 
 	#Coloca na tela as imagens dos botões na posição correspondente
 	for bt in screen.buttons:
@@ -516,6 +519,11 @@ def paintTile(i,j,type):
 		board.tiles[i][j].condition = PERM_DEAD
 		model.cell_layer.set_cell((i,j),False)
 		model.dead_layer.set_cell((i, j), PERM_DEAD)
+	elif type == SICK_CELL:
+		board.tiles[i][j].state = DEAD
+		board.tiles[i][j].condition = SICK
+		model.cell_layer.set_cell((i,j),False)
+		model.dead_layer.set_cell((i, j), SICK)
 
 def rotate(lista, rotation):
 	translation = [lista[0][0], lista[0][1]]
@@ -802,7 +810,23 @@ def runGame():
 						grabbed = True
 						grabType = KILL_EVER
 						screen.buttons[grabType-1].selected = True
+				elif event.key == pygame.K_4: # 4 = selecionar Contaminar celulas
+					if grabbed and grabType == SICK_CELL:
+						grabbed = False
+						screen.buttons[grabType-1].selected = False
+					elif not grabbed or (grabType not in NUMBER_BOXES):
+						if grabType in CLICKABLE_BUTTONS:
+							screen.buttons[grabType-1].selected = False
+						elif grabType in NUMBER_BOXES:
+							screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
+						grabbed = True
+						grabType = SICK_CELL
+						screen.buttons[grabType-1].selected = True
 
+				elif event.key == pygame.K_5:  # 5 = botão configurado tabuleiro aleatorio
+					launchEventOnce(GENERATE_BOARD)
+				elif event.key == pygame.K_6:  # 6 = botão de limpar tabuleiro
+					launchEventOnce(CLEAR_BOARD)
 				if event.key == pygame.K_r: #r = Rotacionar
 					launchEventOnce(ROTATION)
 						
@@ -852,10 +876,11 @@ def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colun
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
 	screen.addButton(Button(KILL_EVER,15,IMG_DEADPERMANENTE))
-	screen.addButton(Button(PAUSE_TIME,16,IMG_PAUSE))
-	screen.addButton(Button(GENERATE_BOARD,17,IMG_GENERATEBOARD))
-	screen.addButton(Button(CLEAR_BOARD,18,IMG_CLEARBOARD))
-	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
+	screen.addButton(Button(SICK_CELL, 16, IMG_PURPLE))
+	screen.addButton(Button(PAUSE_TIME,17,IMG_PAUSE))
+	screen.addButton(Button(GENERATE_BOARD,18,IMG_GENERATEBOARD))
+	screen.addButton(Button(CLEAR_BOARD,19,IMG_CLEARBOARD))
+	screen.addButton(Button(ROTATION,20,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
 	if model.mode == "deterministic":
