@@ -16,6 +16,7 @@ ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
 DEAD_PERMANENTE_COLOR = (0,0,0)
+INFECTED_COLOR = (160,50,160)
 
 # Variáveis Globais
 boardPaused = False
@@ -193,7 +194,7 @@ class Number_Box:
 		self.size = int(screen.actualHeight/25)
 		slotRow = (self.altSlot)%2
 		slotCol = (self.altSlot-30)//2
-		self.x = screen.originX + slotCol * int(self.size * 1.2) + int(screen.actualHeight/10)*6
+		self.x = screen.originX + slotCol * int(self.size * 1.2) + int(screen.actualHeight/20)*18
 		self.y = screen.originY - int(int(screen.actualHeight/12) * (1.2)) + slotRow * (int(screen.actualHeight/12) - self.size)
 		self.epsx = int(self.size*0.3) #Epsilon de posicionamento do texto numérico
 		self.epsy = int(self.size*0.1)
@@ -671,10 +672,10 @@ def runGame():
 				if event.key == pygame.K_p: #P = Pausar
 					launchEventOnce(PAUSE_TIME)
      
-				if event.key >= pygame.K_1 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
+				if event.key >= pygame.K_0 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
 					screen.numberBoxes[grabType-20].value = (event.key - pygame.K_1 + 1)
 					screen.numberBoxes[grabType-20].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
-					model.updateRule(grabType-20,(event.key - pygame.K_1 + 1))
+					model.updateRule(grabType-20,(event.key - pygame.K_0))
      
 				elif event.key == pygame.K_ESCAPE: #Esc = Cancelar botão que está ativo
 					grabbed = False
@@ -778,11 +779,11 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
-	screen.addFloatingText(Floating_Text("Renascimentos:",30))
-	screen.addFloatingText(Floating_Text("Sobrevive:   ≥        ≤ ",31))
-	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,38,3))
-	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,37,2))
-	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,41,3))
+	screen.addFloatingText(Floating_Text("Renascimentos:",70))
+	screen.addFloatingText(Floating_Text("Permanências:  ≥      , ≤    ",67))
+	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,66,3))
+	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,63,2))
+	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,67,3))
 
 	screen.addSlider(Slider_Button())
 
