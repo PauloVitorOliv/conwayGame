@@ -9,7 +9,7 @@ import model as conwayModel
 # Constantes Globais
 FPS = 60
 DEAD, ALIVE = False, True #Estados de uma célula: vivo, morto e permanentemente morto
-NONE, INFECTED, PERM_DEAD = 0, 2, 1
+NONE, INFECTED, PERM_DEAD = 0, 1, 2
 BACKGROUND_COLOR = (32,32,32) #Cor de fundo da simulação
 BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
