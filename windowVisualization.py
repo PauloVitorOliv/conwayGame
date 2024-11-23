@@ -9,7 +9,7 @@ import model as conwayModel
 # Constantes Globais
 FPS = 60
 DEAD, ALIVE = False, True #Estados de uma célula: vivo, morto e permanentemente morto
-NONE, INFECTED, PERM_DEAD = 0, 1, 2
+NONE, INFECTED, PERM_DEAD = 0, 2, 1
 BACKGROUND_COLOR = (32,32,32) #Cor de fundo da simulação
 BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
@@ -585,7 +585,7 @@ def runGame():
 		tileCol = int((mousePos[0] - screen.originX + 1)/screen.scaling + 1)-1 #Adição e subtração do -1 para evitar int(-0.9) = int(0.9), pela natureza da aproximação int do python
 		validTile = (tileRow < board.rows and tileCol < board.cols and tileRow >= 0 and tileCol >= 0)
 
-		if validTile and grabbed: #Se estiver clicado em uma figura, tenta prever ela na posição atual
+		if validTile and grabbed and (grabType in CLICKABLE_BUTTONS): #Se estiver clicado em uma figura, tenta prever ela na posição atual
 			setTileStates(tileRow,tileCol,grabType,PREVIEW_FIGURE)
 
 		for event in pygame.event.get(): #Gerenciamento dos eventos pygame
