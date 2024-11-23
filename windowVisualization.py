@@ -1,7 +1,6 @@
 # Dependências de bibliotecas externas
 import random
 import pygame
-import os
 import tkinter as tk
 from PIL import Image, ImageTk
 # Dependências no projeto
@@ -25,6 +24,7 @@ model = None #Instância do modelo mesa
 board = None #Instância de Board
 screen = None #Instância de Screen
 used_font = None #Fonte a ser usada
+cassino_money = 1000
 rotation_count = 0
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
@@ -55,6 +55,11 @@ ROTATION = 19
 CHANGE_REVIVAL = 22
 CHANGE_MIN_SURVIVAL = 23
 CHANGE_MAX_SURVIVAL = 24
+
+#Constantes de ação: cassino
+CASSINO_PLAY = 90
+CASSINO_RAISE = 91
+CASSINO_LOWER = 92
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
@@ -382,6 +387,8 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 
 	#Coloca na tela as imagens dos botões na posição correspondente
 	for bt in screen.buttons:
+		if bt.action != PAUSE_TIME and model.mode == "cassino":
+			continue
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
 		if bt.selected:
 			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
@@ -389,7 +396,6 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 	coordx=screen.originX + screen.sliders[0].width_sr
 	coordy=screen.endY + int(2*screen.sliders[0].height_sr)
 	surface.blit(pygame.transform.scale(IMG_SPEED, (int(3*screen.sliders[0].height_sr), int(3*screen.sliders[0].height_sr))), (coordx, coordy))
-
 
 	for sl in screen.sliders:
 		sl.draw(surface)
@@ -526,7 +532,7 @@ def setTileStates(i,j,type,setmode):
    
 
 def runGame():
-	global screen, board, used_font
+	global screen, board, used_font, model
 	gameRunning = True; updateCounter = 1; microTime = updateCounter
  
 	#Variáveis do cursor
@@ -546,19 +552,14 @@ def runGame():
 	pySurface = pygame.display.set_mode(screen.size(), pygame.RESIZABLE)
 	timer = pygame.time.Clock()
 
-	
-
 	while(gameRunning):
      
 		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
 		#updateCounter é o número de ticks necessários para uma atualização no tabuleiro, pode ser controlado
-		
 		timer.tick(FPS)
 		for sl in screen.sliders:
 			if sl:
 				updateCounter = int(min_update_counter + (max_update_counter - min_update_counter) * (1 - sl.progress))
-		
-		
 
 		microTime -= 1
 		if microTime <= 0:
@@ -568,9 +569,10 @@ def runGame():
 		#Controle de cursor
 		mousePos = pygame.mouse.get_pos()
 		cursorType = CURSOR_SELECTED if grabbed else CURSOR_FREE
-
 		if cursorType == 0:
 			for bt in screen.buttons: #Se estiver passando o mouse em um botão, altera o cursor
+				if bt.action != PAUSE_TIME and model.mode == "cassino":
+					continue
 				if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 					cursorType = CURSOR_AIM
 					break
@@ -618,6 +620,8 @@ def runGame():
 						sl.dragging = False
 
 				for bt in screen.buttons:
+					if bt.action != PAUSE_TIME and model.mode == "cassino":
+						continue
 					#Verifica se clicou em um botão para ativar o evento correspondente
 					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 						if bt.action in CLICKABLE_BUTTONS: #Botões clicáveis: marcáveis com select
@@ -665,16 +669,17 @@ def runGame():
       
 			#Soltar o botão, desativa o paintmode se ativado
 			elif event.type == pygame.MOUSEBUTTONUP:
-				if grabType in LIFE_BUTTONS:
+				if grabbed and grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
 				for sl in screen.sliders:
 					sl.dragging = False
      
 			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
-				global model
 				if event.key == pygame.K_p: #P = Pausar
 					launchEventOnce(PAUSE_TIME)
-     
+				if model.mode == "cassino":
+					continue
+ 
 				if event.key >= pygame.K_0 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
 					screen.numberBoxes[grabType-CHANGE_REVIVAL].value = (event.key - pygame.K_1 + 1)
 					screen.numberBoxes[grabType-CHANGE_REVIVAL].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
@@ -766,12 +771,10 @@ def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colun
 	screen.addButton(Button(SUMMON_TOAD,7,IMG_TOAD))
 	screen.addButton(Button(SUMMON_BEEHIVE,8,IMG_BEEHIVE))
 	screen.addButton(Button(SUMMON_TUB,9,IMG_TUB))
-	'''<FIGURAS>'''
-	#Troque os nomes e códigos de ação de cada figura nova adicionada. Não altere o slot
 	screen.addButton(Button(SUMMON_LEGS,10,IMG_LEGS))
 	screen.addButton(Button(SUMMON_XPENTOMINO,11,IMG_XPENTOMINO))
 	screen.addButton(Button(SUMMON_LONGHOOK,12,IMG_LONGHOOK))
-
+ 
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
@@ -788,11 +791,19 @@ def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colun
 		screen.addNumberBox(Number_Box(CHANGE_REVIVAL,66,3))
 		screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,63,2))
 		screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,67,3))
+  
+	#Utilidades do cassino
+	if model.mode == "cassino":
+		screen.addFloatingText(Floating_Text(" Apostando:   R$",60))
+		screen.addFloatingText(Floating_Text("1000",72))
+		screen.addFloatingText(Floating_Text("Saldo:   R$",65))
+		screen.addFloatingText(Floating_Text("1000",73))
+		screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
+		screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
+		screen.addButton(Button(KILL_EVER,15,IMG_DEADPERMANENTE))
 
 	screen.addSlider(Slider_Button())
-
 	runGame()
-
 
 def criar_tela_inicial():
 	janela = tk.Tk()
@@ -813,41 +824,43 @@ def criar_tela_inicial():
 	canvas.create_image(0, 0, image=fundo, anchor="nw")
 
 	# Adicionando widgets diretamente sobre o canvas
-	titulo = tk.Label(janela, text="Bem-vindo ao Jogo da Vida", font=("Arial", 20, "bold"), bg="#FF4040")
-	titulo.place(x=450, y=20)
+	titulo = tk.Label(janela, text="Bem-vindo ao Jogo da Vida", font=("Fixedsys", 22, "bold"), bg="#FFFFFF")
+	titulo.place(x=640 - 431/2, y=25)
 
 	tipo_jogo_var = tk.StringVar(value="deterministic")
 
-	tipo_jogo_frame = tk.Frame(janela, bg="#FF4040")
-	tipo_jogo_frame.place(x=550, y=100)
+	tipo_jogo_frame = tk.Frame(janela, bg="#FFFFFF")
+	tipo_jogo_frame.place(x=640 + 110 + (326-259), y=110)
 
-	tk.Label(tipo_jogo_frame, text="Opção de Jogo:", font=("Arial", 12), bg = "#FF4040").pack(anchor="w")
+	tk.Label(tipo_jogo_frame, text="Opção de Jogo:", font=("Fixedsys", 19), bg = "#FFFFFF").pack(anchor="w")
 
-	rb_prob = tk.Radiobutton(tipo_jogo_frame, text="Probabilístico", variable=tipo_jogo_var, value="probabilistic", font=("Arial", 12), bg="#FF4040")
-	rb_deter = tk.Radiobutton(tipo_jogo_frame, text="Determinístico", variable=tipo_jogo_var, value="deterministic", font=("Arial", 12), bg="#FF4040")
+	rb_prob = tk.Radiobutton(tipo_jogo_frame, text="Probabilístico", variable=tipo_jogo_var, value="probabilistic", font=("Fixedsys", 19), bg="#FFFFFF")
+	rb_deter = tk.Radiobutton(tipo_jogo_frame, text="Determinístico", variable=tipo_jogo_var, value="deterministic", font=("Fixedsys", 19), bg="#FFFFFF")
+	rb_cass = tk.Radiobutton(tipo_jogo_frame, text="Cassino", variable=tipo_jogo_var,
+	value="cassino", font=("Fixedsys", 19), bg="#FFFFFF")
 	rb_prob.pack(anchor="w")
 	rb_deter.pack(anchor="w")
+	rb_cass.pack(anchor="w")
 
 	tamanho_tabuleiro_var = tk.StringVar(value="Medio")
 
-	tabuleiro_frame = tk.Frame(janela, bg="#FF4040")
-	tabuleiro_frame.place(x=540, y=200)
+	tabuleiro_frame = tk.Frame(janela, bg="#FFFFFF")
+	tabuleiro_frame.place(x=640 - 326 - 110, y=110)
 
-	tk.Label(tabuleiro_frame, text="Opções de Tabuleiro:", font=("Arial", 12), bg="#FF4040").pack(anchor="w")
+	tk.Label(tabuleiro_frame, text="Opções de Tabuleiro:", font=("Fixedsys", 19), bg="#FFFFFF").pack(anchor="w")
 
-	rb_pequeno = tk.Radiobutton(tabuleiro_frame, text="Pequeno", variable=tamanho_tabuleiro_var, value="Pequeno", font=("Arial", 12), bg="#FF4040")
-	rb_medio = tk.Radiobutton(tabuleiro_frame, text="Médio", variable=tamanho_tabuleiro_var, value="Medio", font=("Arial", 12), bg="#FF4040")
-	rb_grande = tk.Radiobutton(tabuleiro_frame, text="Grande", variable=tamanho_tabuleiro_var, value="Grande", font=("Arial", 12), bg="#FF4040")
+	rb_pequeno = tk.Radiobutton(tabuleiro_frame, text="Pequeno", variable=tamanho_tabuleiro_var, value="Pequeno", font=("Fixedsys", 19), bg="#FFFFFF")
+	rb_medio = tk.Radiobutton(tabuleiro_frame, text="Médio", variable=tamanho_tabuleiro_var, value="Medio", font=("Fixedsys", 19), bg="#FFFFFF")
+	rb_grande = tk.Radiobutton(tabuleiro_frame, text="Grande", variable=tamanho_tabuleiro_var, value="Grande", font=("Fixedsys", 19), bg="#FFFFFF")
 	rb_pequeno.pack(anchor="w")
 	rb_medio.pack(anchor="w")
 	rb_grande.pack(anchor="w")
-
+	
 	def iniciar_jogo():
 		# Obtém as opções selecionadas
 		tipo_jogo = tipo_jogo_var.get()
 		tamanho_tabuleiro = tamanho_tabuleiro_var.get()
 
-		print(tipo_jogo_var)
 		# Exibe no console (substitua por chamada à lógica do jogo)
 		print(f"Jogo iniciado com opção: {tipo_jogo}, Tabuleiro: {tamanho_tabuleiro}")
 		linha, coluna=  0,0
@@ -862,10 +875,10 @@ def criar_tela_inicial():
 			coluna=40
 
 		generateConwayGame(isRandom = False, modo = tipo_jogo, linhas=linha,  colunas=coluna )
-
-	btn_iniciar = tk.Button(janela, text="Iniciar Jogo", font=("Arial", 14), bg="green", fg="white", command=iniciar_jogo)
-	btn_iniciar.place(x=560, y=330)
-
+  
+	btn_iniciar = tk.Button(janela, text="Iniciar Jogo", font=("Fixedsys", 20), bg="green", fg="white", command=iniciar_jogo)
+	btn_iniciar.place(x=640 - 216/2, y=310)
+  
 	# Mantém a imagem de fundo no escopo para evitar garbage collection
 	canvas.image = fundo
 	janela.mainloop()
