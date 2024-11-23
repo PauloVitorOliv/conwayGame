@@ -16,7 +16,7 @@ BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
-DEAD_PERMANENTE_COLOR = (0,0,0)
+DEAD_PERMANENTE_COLOR = (128,128,128)
 INFECTED_COLOR = (160,50,160)
 
 # Variáveis Globais
@@ -86,7 +86,7 @@ IMG_TUB = pygame.image.load("images/tub.png")
 IMG_LEGS = pygame.image.load("images/legs.png")
 IMG_XPENTOMINO = pygame.image.load("images/xpentomino.png")
 IMG_LONGHOOK = pygame.image.load("images/longhook.png")
-IMG_DEADPERMANENTE = pygame.image.load("images/caveira.png")
+IMG_DEADPERMANENTE = pygame.image.load("images/permadead.png")
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
