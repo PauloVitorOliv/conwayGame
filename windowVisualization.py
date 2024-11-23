@@ -51,20 +51,20 @@ GENERATE_BOARD = 17
 CLEAR_BOARD = 18
 ROTATION = 19
 
-CHANGE_REVIVAL = 20
-CHANGE_MIN_SURVIVAL = 21
-CHANGE_MAX_SURVIVAL = 22
+CHANGE_REVIVAL = 22
+CHANGE_MIN_SURVIVAL = 23
+CHANGE_MAX_SURVIVAL = 24
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
 
 # Tipos de botões
-CONFIG_BUTTONS = range(13,20)
+CONFIG_BUTTONS = range(13,22)
 FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,16)
 CLICKABLE_BUTTONS = range(1,16)
-NUMBER_BOXES = range(20,23)
+NUMBER_BOXES = range(22,25)
 GENERATE_BUTTON = range(17,20)
 
 # Tipos de cursor
@@ -625,7 +625,7 @@ def runGame():
 								if grabType in CLICKABLE_BUTTONS:
 									screen.buttons[grabType-1].selected = False
 								elif grabType in NUMBER_BOXES:
-									screen.numberBoxes[grabType-20].selected = False
+									screen.numberBoxes[grabType-22].selected = False
 								grabbed = True
 								grabType = bt.action
 								screen.buttons[grabType-1].selected = True
@@ -652,7 +652,7 @@ def runGame():
 							nb.selected = True
 						elif grabbed and grabType != nb.action:
 							if grabType in NUMBER_BOXES:
-								screen.numberBoxes[grabType-20].selected = False
+								screen.numberBoxes[grabType-22].selected = False
 							elif grabType in CLICKABLE_BUTTONS:
 								screen.buttons[grabType-1].selected = False
 							grabbed = True
@@ -673,16 +673,16 @@ def runGame():
 					launchEventOnce(PAUSE_TIME)
      
 				if event.key >= pygame.K_0 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
-					screen.numberBoxes[grabType-20].value = (event.key - pygame.K_1 + 1)
-					screen.numberBoxes[grabType-20].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
-					model.updateRule(grabType-20,(event.key - pygame.K_0))
+					screen.numberBoxes[grabType-CHANGE_REVIVAL].value = (event.key - pygame.K_1 + 1)
+					screen.numberBoxes[grabType-CHANGE_REVIVAL].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
+					model.updateRule(grabType-CHANGE_REVIVAL,(event.key - pygame.K_0))
      
 				elif event.key == pygame.K_ESCAPE: #Esc = Cancelar botão que está ativo
 					grabbed = False
 					if grabType in CLICKABLE_BUTTONS:
 						screen.buttons[grabType-1].selected = False
 					elif grabType in NUMBER_BOXES:
-						screen.numberBoxes[grabType-20].selected = False
+						screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
       
 				elif event.key == pygame.K_1: #1 = selecionar "Reviver células"
 					if grabbed and grabType == REVIVE_CELL:
@@ -692,7 +692,7 @@ def runGame():
 						if grabType in CLICKABLE_BUTTONS:
 							screen.buttons[grabType-1].selected = False
 						elif grabType in NUMBER_BOXES:
-							screen.numberBoxes[grabType-20].selected = False
+							screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
 						grabbed = True
 						grabType = REVIVE_CELL
 						screen.buttons[grabType-1].selected = True
@@ -705,7 +705,7 @@ def runGame():
 						if grabType in CLICKABLE_BUTTONS:
 							screen.buttons[grabType-1].selected = False
 						elif grabType in NUMBER_BOXES:
-							screen.numberBoxes[grabType-20].selected = False
+							screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
 						grabbed = True
 						grabType = KILL_CELL
 						screen.buttons[grabType-1].selected = True
@@ -717,7 +717,7 @@ def runGame():
 						if grabType in CLICKABLE_BUTTONS:
 							screen.buttons[grabType-1].selected = False
 						elif grabType in NUMBER_BOXES:
-							screen.numberBoxes[grabType-20].selected = False
+							screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
 						grabbed = True
 						grabType = KILL_EVER
 						screen.buttons[grabType-1].selected = True
@@ -779,11 +779,12 @@ def generateConwayGame(isRandom = False):
 	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
-	screen.addFloatingText(Floating_Text("Renascimentos:",70))
-	screen.addFloatingText(Floating_Text("Permanências:  ≥      , ≤    ",67))
-	screen.addNumberBox(Number_Box(CHANGE_REVIVAL,66,3))
-	screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,63,2))
-	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,67,3))
+	if model.mode == "deterministic":
+		screen.addFloatingText(Floating_Text("Renascimentos:",70))
+		screen.addFloatingText(Floating_Text("Permanências:  ≥      , ≤    ",67))
+		screen.addNumberBox(Number_Box(CHANGE_REVIVAL,66,3))
+		screen.addNumberBox(Number_Box(CHANGE_MIN_SURVIVAL,63,2))
+		screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,67,3))
 
 	screen.addSlider(Slider_Button())
 
