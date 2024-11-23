@@ -2,7 +2,6 @@
 import random
 import pygame
 import os
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Dependências no projeto
 import model as conwayModel
@@ -15,6 +14,8 @@ BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
+DEAD_PERMANENTE = (0,0,0)
+permanently_killed = set()
 
 # Variáveis Globais
 boardPaused = False
@@ -43,16 +44,15 @@ SUMMON_LONGHOOK = 12
 #Constantes de ação dos botões: gerais
 REVIVE_CELL = 13
 KILL_CELL = 14
-PAUSE_TIME = 15
-GENERATE_BOARD = 16
-CLEAR_BOARD = 17
-
+KILL_EVER = 15
+PAUSE_TIME = 16
+GENERATE_BOARD = 17
+CLEAR_BOARD = 18
 ROTATION = 19
 
 CHANGE_REVIVAL = 20
 CHANGE_MIN_SURVIVAL = 21
 CHANGE_MAX_SURVIVAL = 22
-
 
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
@@ -61,11 +61,10 @@ ACTIVATE_FIGURE = True
 # Tipos de botões
 CONFIG_BUTTONS = range(13,20)
 FIGURE_BUTTONS = range(1,13)
-LIFE_BUTTONS = range(13,15)
-CLICKABLE_BUTTONS = range(1,15)
+LIFE_BUTTONS = range(13,16)
+CLICKABLE_BUTTONS = range(1,16)
 NUMBER_BOXES = range(20,23)
-PAUSE_BUTTON = 15
-GENERATE_BUTTON = range(16,18)
+GENERATE_BUTTON = range(17,19)
 
 # Tipos de cursor
 CURSOR_FREE = 0
@@ -85,7 +84,7 @@ IMG_TUB = pygame.image.load("images/tub.png")
 IMG_LEGS = pygame.image.load("images/legs.png")
 IMG_XPENTOMINO = pygame.image.load("images/xpentomino.png")
 IMG_LONGHOOK = pygame.image.load("images/longhook.png")
-
+IMG_DEADPERMANENTE = pygame.image.load("images/caveira.png")
 IMG_ALIVECELL = pygame.image.load("images/aliveCell.png")
 IMG_DEADCELL = pygame.image.load("images/deadCell.png")
 IMG_PAUSE = pygame.image.load("images/pauseTime.png")
@@ -110,15 +109,19 @@ class Tile:
 	def __init__(self):
 		self.state = DEAD
 		self.selected = False
+		self.is_permanently_dead = False
 
 	def change(self):
 		self.state = 1 - self.state
+		if not self.is_permanently_dead:
+			self.ALIVE = True
 
 	def live(self):
 		self.state = ALIVE
 
 	def die(self):
 		self.state = DEAD
+		self.is_permanently_dead = True
 
 '''
 Classe Board -> Possui um conjunto de tiles e uma instância de model, representa o tabuleiro do jogo
@@ -367,6 +370,7 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 			#Para cada tile, define a posição, cor e tamanho dele e desenha retângulos correspondentes a ele e sua borda
 			xPos = j*screen.scaling + screen.originX
 			yPos = i*screen.scaling + screen.originY
+   
 			if board.tiles[i][j].selected == True:
 				board.tiles[i][j].selected = False
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
@@ -374,6 +378,9 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 			elif board.tiles[i][j].state == ALIVE:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
 				pygame.draw.rect(surface,ALIVE_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
+			elif (i, j) in permanently_killed:
+				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
+				pygame.draw.rect(surface,DEAD_PERMANENTE,(xPos + tileBorder, yPos + tileBorder, tileSize - tileBorder, tileSize - tileBorder))
 			else:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
 				pygame.draw.rect(surface,DEAD_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
@@ -414,6 +421,7 @@ def launchEventOnce(type):
 		r, c = board.boardDims()
 		newModel = conwayModel.GameOfLifeModel(rows=r,cols=c)
 		model.cell_layer = newModel.cell_layer
+		permanently_killed.clear()
 		board.update(False)
 	elif type == ROTATION:
 		global rotation_count
@@ -421,14 +429,21 @@ def launchEventOnce(type):
 
 #Pinta o quadrado de posição i,j, matando ou revivendo a célula, de acordo com a ocasião necessária
 def paintTile(i,j,type):
-	global board, model
+	global board, model, permanently_killed
 	i %= board.rows; j %= board.cols
+	if (i,j) in permanently_killed:
+		return
 	if type == REVIVE_CELL:
 		board.tiles[i][j].live()
 		model.cell_layer.set_cell((i,j),True)
 	elif type == KILL_CELL:
 		board.tiles[i][j].die()
 		model.cell_layer.set_cell((i,j),False)
+	elif type == KILL_EVER:
+		permanently_killed.add((i,j))
+		board.tiles[i][j].die()
+		model.cell_layer.set_cell((i,j),False)
+		board.tiles[i][j].color = DEAD_PERMANENTE
 
 def rotate(lista, rotation):
 
@@ -461,6 +476,7 @@ def modulo_board(lista):
 		i[0], i[1] = i[0] % board.rows, i[1] % board.cols
 	return lista
 
+permanently_killed = set()
 
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
 def setTileStates(i,j,type,setmode):
@@ -506,9 +522,14 @@ def setTileStates(i,j,type,setmode):
 			board.tiles[tile[0]][tile[1]].selected = False
 			board.tiles[tile[0]][tile[1]].live()
 			model.cell_layer.set_cell((tile[0],tile[1]),True)
+   
+def killEver(i, j):
+	board.tiles[i][j].die()
+	board.tiles[i][j].color = DEAD_PERMANENTE
+	model.cell_layer.set_cell((i,j),False)
 
 def runGame():
-	global screen, board, used_font
+	global screen, board, used_font, permanently_killed
 	gameRunning = True; updateCounter = 1; microTime = updateCounter
  
 	#Variáveis do cursor
@@ -624,6 +645,10 @@ def runGame():
 						setTileStates(tileRow,tileCol,grabType,ACTIVATE_FIGURE)
 					elif grabType in LIFE_BUTTONS:
 						cursorPaintMode = grabType
+					if grabType == KILL_EVER:
+						if (tileRow, tileCol) not in permanently_killed:
+							permanently_killed.add((tileRow,tileCol))
+							setTileStates(tileRow, tileCol, KILL_CELL, ACTIVATE_FIGURE)
       
 				#Verifica se foi clicado em um NumberBox
 				for nb in screen.numberBoxes:
@@ -694,7 +719,19 @@ def runGame():
 						grabbed = True
 						grabType = KILL_CELL
 						screen.buttons[grabType-1].selected = True
-				
+				elif event.key == pygame.K_3:
+					if grabbed and grabType == KILL_EVER:
+						grabbed = False
+						screen.buttons[grabType-1].selected = False
+					elif not grabbed or (grabType not in NUMBER_BOXES):
+						if grabType in CLICKABLE_BUTTONS:
+							screen.buttons[grabType-1].selected = False
+						elif grabType in NUMBER_BOXES:
+							screen.numberBoxes[grabType-20].selected = False
+						grabbed = True
+						grabType = KILL_EVER
+						screen.buttons[grabType-1].selected = True
+
 				if event.key == pygame.K_r: #r = Rotacionar
 					launchEventOnce(ROTATION)
 						
@@ -706,8 +743,6 @@ def runGame():
 		#Update do Slider
 		for sl in screen.sliders:
 			sl.updateThumb(mousePos)
-
-		
 
 		#Update da tela
 		pySurface.fill(BACKGROUND_COLOR)
@@ -747,10 +782,10 @@ def generateConwayGame(isRandom = False):
 	#Botões de matar e reviver células
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
-	screen.addButton(Button(PAUSE_TIME,15,IMG_PAUSE))
-	screen.addButton(Button(GENERATE_BOARD,16,IMG_GENERATEBOARD))
-	screen.addButton(Button(CLEAR_BOARD,17,IMG_CLEARBOARD))
-
+	screen.addButton(Button(KILL_EVER,15,IMG_DEADPERMANENTE))
+	screen.addButton(Button(PAUSE_TIME,16,IMG_PAUSE))
+	screen.addButton(Button(GENERATE_BOARD,17,IMG_GENERATEBOARD))
+	screen.addButton(Button(CLEAR_BOARD,18,IMG_CLEARBOARD))
 	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
