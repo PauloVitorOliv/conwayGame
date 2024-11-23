@@ -10,7 +10,7 @@ import model as conwayModel
 # Constantes Globais
 FPS = 60
 DEAD, ALIVE = False, True #Estados de uma célula: vivo, morto e permanentemente morto
-NONE, INFECTED, PERM_DEAD = 0, 1, 2
+NONE, INFECTED, PERM_DEAD, SICK = 0, 1, 2, 3
 BACKGROUND_COLOR = (32,32,32) #Cor de fundo da simulação
 BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
@@ -47,10 +47,11 @@ SUMMON_LONGHOOK = 12
 REVIVE_CELL = 13
 KILL_CELL = 14
 KILL_EVER = 15
-PAUSE_TIME = 16
-GENERATE_BOARD = 17
-CLEAR_BOARD = 18
-ROTATION = 19
+SICK_CELL = 16
+PAUSE_TIME = 17
+GENERATE_BOARD = 18
+CLEAR_BOARD = 19
+ROTATION = 20
 
 CHANGE_REVIVAL = 22
 CHANGE_MIN_SURVIVAL = 23
@@ -63,10 +64,10 @@ ACTIVATE_FIGURE = True
 # Tipos de botões
 CONFIG_BUTTONS = range(13,22)
 FIGURE_BUTTONS = range(1,13)
-LIFE_BUTTONS = range(13,16)
-CLICKABLE_BUTTONS = range(1,16)
+LIFE_BUTTONS = range(13,17)
+CLICKABLE_BUTTONS = range(1,17)
 NUMBER_BOXES = range(22,25)
-GENERATE_BUTTON = range(17,20)
+GENERATE_BUTTON = range(18,21)
 
 # Tipos de cursor
 CURSOR_FREE = 0
@@ -96,7 +97,7 @@ IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 IMG_SPEED = pygame.image.load("images/icon_speed.png")
 IMG_ROTATION = pygame.image.load("images/rotation.png")
 IMG_LOGO = pygame.image.load("images/logo.png")
-
+IMG_PURPLE = pygame.image.load("images/sickcell.png")
 
 # Classes
 '''
@@ -376,9 +377,12 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 			elif board.tiles[i][j].state == ALIVE:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,screen.scaling,screen.scaling))
 				pygame.draw.rect(surface,ALIVE_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
-			else:
+			elif board.tiles[i][j].condition == DEAD:
 				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
 				pygame.draw.rect(surface,DEAD_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
+			else:
+				pygame.draw.rect(surface,BORDER_COLOR,(xPos,yPos,tileSize,tileSize))
+				pygame.draw.rect(surface,INFECTED_COLOR,(xPos+tileBorder,yPos+tileBorder,tileSize-tileBorder,tileSize-tileBorder))
 
 	#Coloca na tela as imagens dos botões na posição correspondente
 	for bt in screen.buttons:
@@ -444,6 +448,11 @@ def paintTile(i,j,type):
 		board.tiles[i][j].condition = PERM_DEAD
 		model.cell_layer.set_cell((i,j),False)
 		model.dead_layer.set_cell((i, j), PERM_DEAD)
+	elif type == SICK_CELL:
+		board.tiles[i][j].state = DEAD
+		board.tiles[i][j].condition = SICK
+		model.cell_layer.set_cell((i,j),False)
+		model.dead_layer.set_cell((i, j), SICK)
 
 def rotate(lista, rotation):
 
@@ -776,10 +785,11 @@ def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colun
 	screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
 	screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
 	screen.addButton(Button(KILL_EVER,15,IMG_DEADPERMANENTE))
-	screen.addButton(Button(PAUSE_TIME,16,IMG_PAUSE))
-	screen.addButton(Button(GENERATE_BOARD,17,IMG_GENERATEBOARD))
-	screen.addButton(Button(CLEAR_BOARD,18,IMG_CLEARBOARD))
-	screen.addButton(Button(ROTATION,19,IMG_ROTATION))
+	screen.addButton(Button(SICK_CELL, 16, IMG_PURPLE))
+	screen.addButton(Button(PAUSE_TIME,17,IMG_PAUSE))
+	screen.addButton(Button(GENERATE_BOARD,18,IMG_GENERATEBOARD))
+	screen.addButton(Button(CLEAR_BOARD,19,IMG_CLEARBOARD))
+	screen.addButton(Button(ROTATION,20,IMG_ROTATION))
 	
 	#Caixas numéricas de alterar regras e textos
 	if model.mode == "deterministic":
