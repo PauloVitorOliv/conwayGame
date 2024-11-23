@@ -5,7 +5,7 @@ from mesa.space import PropertyLayer
 from scipy.signal import convolve2d
 
 class GameOfLifeModel(Model):
-	def __init__(self, rows=10, cols=10, mode="deterministic", rounds=10):
+	def __init__(self, rows=10, cols=10, mode="probabilistic", rounds=10):
 		super().__init__()
 		# Inicializa a camada de propriedades para os estados das células
 		self.cell_layer = PropertyLayer("cells", rows, cols, False, dtype=bool)
@@ -43,8 +43,6 @@ class GameOfLifeModel(Model):
 		# convolve2d aplica o kernel a cada célula da grade, somando os valores dos vizinhos.
 		# boundary="wrap" garante que a grade envolva as bordas, simulando uma superfície toroidal.
 		neighbor_count = convolve2d(self.cell_layer.data, kernel, mode="same", boundary="wrap")
-
-
 		has_infected_neighbor = convolve2d(self.dead_layer.data%2, kernel, mode="same", boundary="wrap")
 
 		# Aplica as regras do Jogo da Vida:
@@ -58,7 +56,7 @@ class GameOfLifeModel(Model):
 			probabilities = neighbor_count / 8.0  # Normalize to get probabilities (max neighbors = 8)
 			self.cell_layer.data = np.logical_and(
        			np.random.rand(self.rows, self.cols) < probabilities,
-				True
+				self.dead_layer.data == 0
         	)
 		else:
 			# Deterministic rules (same as classic Game of Life)
