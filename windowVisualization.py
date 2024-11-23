@@ -1,7 +1,9 @@
 # Dependências de bibliotecas externas
 import random
+import tkinter as tk
 import pygame
 import os
+from PIL import Image, ImageTk
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Dependências no projeto
@@ -88,6 +90,7 @@ IMG_PAUSE = pygame.image.load("images/pauseTime.png")
 IMG_BORDER = pygame.image.load("images/border.png")
 IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
 IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
+IMG_LOGO = pygame.image.load("images/logo.png")
 
 # Classes
 '''
@@ -378,6 +381,8 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 		if bt.selected:
 			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
 
+	
+
 	for sl in screen.sliders:
 		sl.draw(surface)
 
@@ -483,7 +488,7 @@ def runGame():
 	
 
 	while(gameRunning):
-     
+	 
 		#Controle de tempo: execução esperada a quantia "FPS" de frames por segundo, onde microTime é um contador de ticks que ocorrem em intervalos de tempo de acordo com a execução esperada.
 		#updateCounter é o número de ticks necessários para uma atualização no tabuleiro, pode ser controlado
 		
@@ -528,15 +533,15 @@ def runGame():
 		for event in pygame.event.get(): #Gerenciamento dos eventos pygame
 			if event.type == pygame.QUIT:
 				gameRunning = False
-    
+		
 			#Eventos de tela: atualiza os objetos caso a tela altere de tamanho
 			elif event.type == pygame.VIDEORESIZE:
 				screen.update(event.w,event.h)
-    
+		
 			elif event.type == pygame.WINDOWMAXIMIZED:
 				w, h = pygame.display.get_window_size()
 				screen.update(w,h)
-    
+		
 			elif event.type == pygame.WINDOWMINIMIZED:
 				w, h = pygame.display.get_window_size()
 				screen.update(w,h)
@@ -575,7 +580,7 @@ def runGame():
 						setTileStates(tileRow,tileCol,grabType,ACTIVATE_FIGURE)
 					elif grabType in LIFE_BUTTONS:
 						cursorPaintMode = grabType
-      
+	  
 				#Verifica se foi clicado em um NumberBox
 				for nb in screen.numberBoxes:
 					if nb.rect.collidepoint(event.pos):
@@ -595,31 +600,31 @@ def runGame():
 							grabType = nb.action
 							nb.selected = True
 						
-      
+	  
 			#Soltar o botão, desativa o paintmode se ativado
 			elif event.type == pygame.MOUSEBUTTONUP:
 				if grabType in LIFE_BUTTONS:
 					cursorPaintMode = 0
 				for sl in screen.sliders:
 					sl.dragging = False
-     
+	 
 			elif event.type == pygame.KEYDOWN: #Pressionamento de teclas
 				global model
 				if event.key == pygame.K_p: #P = Pausar
 					launchEventOnce(PAUSE_TIME)
-     
+	 
 				if event.key >= pygame.K_1 and event.key <= pygame.K_8 and grabbed and grabType in NUMBER_BOXES:
 					screen.numberBoxes[grabType-20].value = (event.key - pygame.K_1 + 1)
 					screen.numberBoxes[grabType-20].txt = used_font.render(str(event.key - pygame.K_1 + 1),True,SELECTED_COLOR)
 					model.updateRule(grabType-20,(event.key - pygame.K_1 + 1))
-     
+	 
 				elif event.key == pygame.K_ESCAPE: #Esc = Cancelar botão que está ativo
 					grabbed = False
 					if grabType in CLICKABLE_BUTTONS:
 						screen.buttons[grabType-1].selected = False
 					elif grabType in NUMBER_BOXES:
 						screen.numberBoxes[grabType-20].selected = False
-      
+	  
 				elif event.key == pygame.K_1: #1 = selecionar "Reviver células"
 					if grabbed and grabType == REVIVE_CELL:
 						grabbed = False
@@ -632,7 +637,7 @@ def runGame():
 						grabbed = True
 						grabType = REVIVE_CELL
 						screen.buttons[grabType-1].selected = True
-      
+	  
 				elif event.key == pygame.K_2: #2 = selecionar "Matar células"
 					if grabbed and grabType == KILL_CELL:
 						grabbed = False
@@ -654,8 +659,6 @@ def runGame():
 		for sl in screen.sliders:
 			sl.updateThumb(mousePos)
 
-		
-
 		#Update da tela
 		pySurface.fill(BACKGROUND_COLOR)
 		drawCurrentGame(pySurface)
@@ -663,11 +666,11 @@ def runGame():
 
 	pygame.quit()
 
-def generateConwayGame(isRandom = False):
+def generateConwayGame(isRandom = False, modo = "deterministic", linhas= 45, colunas= 80):
 	#Tabuleiro inicial
 	global model, board, screen
 	pygame.init()
-	model = conwayModel.GameOfLifeModel(rows=45,cols=80)
+	model = conwayModel.GameOfLifeModel(rows=linhas,cols=colunas, mode=modo)
 	if isRandom:
 		model.randomize(0.50)
 
@@ -706,7 +709,84 @@ def generateConwayGame(isRandom = False):
 	screen.addNumberBox(Number_Box(CHANGE_MAX_SURVIVAL,41,3))
 
 	screen.addSlider(Slider_Button())
-
 	runGame()
 
-generateConwayGame(isRandom=False)
+
+def criar_tela_inicial():
+	janela = tk.Tk()
+	janela.title("Jogo da Vida - Tela Inicial")
+	janela.geometry("1280x720")
+	janela.resizable(False, False)
+
+	# Adicionando um canvas para a imagem de fundo
+	canvas = tk.Canvas(janela, width=1280, height=720)
+	canvas.pack(fill="both", expand=True)
+
+	# Carregando a imagem de fundo
+	imagem_fundo = Image.open("images/logo.png")
+	imagem_fundo = imagem_fundo.resize((1280, 720), Image.Resampling.LANCZOS)
+	fundo = ImageTk.PhotoImage(imagem_fundo)
+
+	# Exibindo a imagem no canvas
+	canvas.create_image(0, 0, image=fundo, anchor="nw")
+
+	# Adicionando widgets diretamente sobre o canvas
+	titulo = tk.Label(janela, text="Bem-vindo ao Jogo da Vida", font=("Arial", 20, "bold"), bg="#FF4040")
+	titulo.place(x=450, y=20)
+
+	tipo_jogo_var = tk.StringVar(value="deterministic")
+
+	tipo_jogo_frame = tk.Frame(janela, bg="#FF4040")
+	tipo_jogo_frame.place(x=550, y=100)
+
+	tk.Label(tipo_jogo_frame, text="Opção de Jogo:", font=("Arial", 12), bg = "#FF4040").pack(anchor="w")
+
+	rb_prob = tk.Radiobutton(tipo_jogo_frame, text="Probabilístico", variable=tipo_jogo_var, value="probabilistic", font=("Arial", 12), bg="#FF4040")
+	rb_deter = tk.Radiobutton(tipo_jogo_frame, text="Determinístico", variable=tipo_jogo_var, value="deterministic", font=("Arial", 12), bg="#FF4040")
+	rb_prob.pack(anchor="w")
+	rb_deter.pack(anchor="w")
+
+	tamanho_tabuleiro_var = tk.StringVar(value="Medio")
+
+	tabuleiro_frame = tk.Frame(janela, bg="#FF4040")
+	tabuleiro_frame.place(x=540, y=200)
+
+	tk.Label(tabuleiro_frame, text="Opções de Tabuleiro:", font=("Arial", 12), bg="#FF4040").pack(anchor="w")
+
+	rb_pequeno = tk.Radiobutton(tabuleiro_frame, text="Pequeno", variable=tamanho_tabuleiro_var, value="Pequeno", font=("Arial", 12), bg="#FF4040")
+	rb_medio = tk.Radiobutton(tabuleiro_frame, text="Médio", variable=tamanho_tabuleiro_var, value="Medio", font=("Arial", 12), bg="#FF4040")
+	rb_grande = tk.Radiobutton(tabuleiro_frame, text="Grande", variable=tamanho_tabuleiro_var, value="Grande", font=("Arial", 12), bg="#FF4040")
+	rb_pequeno.pack(anchor="w")
+	rb_medio.pack(anchor="w")
+	rb_grande.pack(anchor="w")
+
+	def iniciar_jogo():
+		# Obtém as opções selecionadas
+		tipo_jogo = tipo_jogo_var.get()
+		tamanho_tabuleiro = tamanho_tabuleiro_var.get()
+
+		print(tipo_jogo_var)
+		# Exibe no console (substitua por chamada à lógica do jogo)
+		print(f"Jogo iniciado com opção: {tipo_jogo}, Tabuleiro: {tamanho_tabuleiro}")
+		linha, coluna=  0,0
+		if tamanho_tabuleiro == "Medio":
+			linha= 36
+			coluna= 60
+		elif tamanho_tabuleiro == "Grande":
+			linha= 60
+			coluna=100
+		else:
+			linha=24
+			coluna=40
+
+		generateConwayGame(isRandom = False, modo = tipo_jogo, linhas=linha,  colunas=coluna )
+
+	btn_iniciar = tk.Button(janela, text="Iniciar Jogo", font=("Arial", 14), bg="green", fg="white", command=iniciar_jogo)
+	btn_iniciar.place(x=560, y=330)
+
+	# Mantém a imagem de fundo no escopo para evitar garbage collection
+	canvas.image = fundo
+	janela.mainloop()
+
+# Chamar a função para exibir a janela inicial
+criar_tela_inicial()
