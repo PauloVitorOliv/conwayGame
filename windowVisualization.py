@@ -75,7 +75,7 @@ FIGURE_BUTTONS = range(1,13)
 LIFE_BUTTONS = range(13,16)
 CLICKABLE_BUTTONS = range(1,16)
 NUMBER_BOXES = range(22,25)
-GENERATE_BUTTON = range(17,20)
+GENERATE_BUTTON = range(18,21)
 CASSINO_BUTTONS = range(90, 93)
 
 # Tipos de cursor
