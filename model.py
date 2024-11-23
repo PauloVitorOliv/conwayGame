@@ -52,39 +52,32 @@ class GameOfLifeModel(Model):
 		# 2. Uma célula morta com exatamente 3 vizinhos vivos torna-se viva.
 		# Essas regras são implementadas usando operações lógicas na grade.
 		
-  
-		self.cell_layer.data = np.logical_and(
-
-			# ter um end logico. com 
-			np.logical_or(
-				np.logical_and(self.cell_layer.data, np.logical_or(neighbor_count == 2, neighbor_count == 3)),
-				np.logical_and(~self.cell_layer.data, neighbor_count == 3)  # Regra para células mortas
-			), (self.dead_layer.data == 0)
-		)
-
-		self.dead_layer.data = np.logical_and(
-			self.dead_layer.data == 2, True
-		)*1 + np.logical_and(
-			self.cell_layer.data == False, np.logical_or(
-				self.dead_layer.data != 0, has_infected_neighbor != 0
-			)
-		)*1
-
 		# Apply deterministic or probabilistic rules
-		if self.mode == "deterministic":
-			# Deterministic rules (same as classic Game of Life)
-			self.cell_layer.data = np.logical_or(
-				np.logical_and(self.cell_layer.data, np.logical_and((neighbor_count >= self.vizInf),(neighbor_count <= self.vizSup))),
-				# Regra para células vivas
-				np.logical_and(~self.cell_layer.data, neighbor_count == self.vizRen)  # Regra para células mortas
-			)
-		elif self.mode == "probabilistic":
+		if self.mode == "probabilistic":
 			# Probabilistic rules: probability of being alive is proportional to the number of live neighbors
 			probabilities = neighbor_count / 8.0  # Normalize to get probabilities (max neighbors = 8)
 			self.cell_layer.data = np.logical_and(
        			np.random.rand(self.rows, self.cols) < probabilities,
 				True
         	)
+		else:
+			# Deterministic rules (same as classic Game of Life)
+			self.cell_layer.data = np.logical_and(
+				# ter um end logico. com 
+				np.logical_or(
+					np.logical_and(self.cell_layer.data, np.logical_and((neighbor_count >= self.vizInf),(neighbor_count <= self.vizSup))),
+					np.logical_and(~self.cell_layer.data, neighbor_count == self.vizRen)  # Regra para células mortas
+				),
+    			(self.dead_layer.data == 0)
+			)
+   
+		# Regras de novos estados
+		self.dead_layer.data = np.logical_and(self.dead_layer.data == 2, True)*1 + np.logical_and(
+				self.cell_layer.data == False,
+    			np.logical_or(
+					self.dead_layer.data != 0, has_infected_neighbor != 0
+				)
+			)*1
 
 		# Métricas
 		self.alive_count = np.sum(self.cell_layer.data)
