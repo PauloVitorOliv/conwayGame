@@ -10,6 +10,8 @@ class GameOfLifeModel(Model):
 		# Inicializa a camada de propriedades para os estados das células
 		self.cell_layer = PropertyLayer("cells", rows, cols, False, dtype=bool)
 
+		self.dead_layer = PropertyLayer("cells", rows, cols, 0, dtype=int)
+
 		# Métricas e coletor de dados
 		self.cells = rows * cols
 		self.alive_count = 0
@@ -42,12 +44,32 @@ class GameOfLifeModel(Model):
 		# boundary="wrap" garante que a grade envolva as bordas, simulando uma superfície toroidal.
 		neighbor_count = convolve2d(self.cell_layer.data, kernel, mode="same", boundary="wrap")
 
+
+		has_infected_neighbor = convolve2d(self.dead_layer.data%2, kernel, mode="same", boundary="wrap")
+
 		# Aplica as regras do Jogo da Vida:
 		# 1. Uma célula viva com 2 ou 3 vizinhos vivos sobrevive, caso contrário, morre.
 		# 2. Uma célula morta com exatamente 3 vizinhos vivos torna-se viva.
 		# Essas regras são implementadas usando operações lógicas na grade.
 		
   
+		self.cell_layer.data = np.logical_and(
+
+			# ter um end logico. com 
+			np.logical_or(
+				np.logical_and(self.cell_layer.data, np.logical_or(neighbor_count == 2, neighbor_count == 3)),
+				np.logical_and(~self.cell_layer.data, neighbor_count == 3)  # Regra para células mortas
+			), (self.dead_layer.data == 0)
+		)
+
+		self.dead_layer.data = np.logical_and(
+			self.dead_layer.data == 2, True
+		)*1 + np.logical_and(
+			self.cell_layer.data == False, np.logical_or(
+				self.dead_layer.data != 0, has_infected_neighbor != 0
+			)
+		)*1
+
 		# Apply deterministic or probabilistic rules
 		if self.mode == "deterministic":
 			# Deterministic rules (same as classic Game of Life)
