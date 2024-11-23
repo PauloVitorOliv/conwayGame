@@ -733,7 +733,23 @@ def runGame():
 						grabbed = True
 						grabType = KILL_EVER
 						screen.buttons[grabType-1].selected = True
+				elif event.key == pygame.K_4: # 4 = selecionar Contaminar celulas
+					if grabbed and grabType == SICK_CELL:
+						grabbed = False
+						screen.buttons[grabType-1].selected = False
+					elif not grabbed or (grabType not in NUMBER_BOXES):
+						if grabType in CLICKABLE_BUTTONS:
+							screen.buttons[grabType-1].selected = False
+						elif grabType in NUMBER_BOXES:
+							screen.numberBoxes[grabType-CHANGE_REVIVAL].selected = False
+						grabbed = True
+						grabType = SICK_CELL
+						screen.buttons[grabType-1].selected = True
 
+				elif event.key == pygame.K_5:  # 5 = botão configurado tabuleiro aleatorio
+					launchEventOnce(GENERATE_BOARD)
+				elif event.key == pygame.K_6:  # 6 = botão de limpar tabuleiro
+					launchEventOnce(CLEAR_BOARD)
 				if event.key == pygame.K_r: #r = Rotacionar
 					launchEventOnce(ROTATION)
 						
