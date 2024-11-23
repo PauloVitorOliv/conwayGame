@@ -376,7 +376,6 @@ class Screen:
 	def addCassinoText(self, newText):
 		self.cassinoTexts.append(newText)
 
-
 # Funções
 
 def waitToBet(qtSteps):
