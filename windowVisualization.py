@@ -3,6 +3,8 @@ import random
 import pygame
 import tkinter as tk
 from PIL import Image, ImageTk
+import numpy as NP
+
 # Dependências no projeto
 import model as conwayModel
 
@@ -24,7 +26,6 @@ model = None #Instância do modelo mesa
 board = None #Instância de Board
 screen = None #Instância de Screen
 used_font = None #Fonte a ser usada
-cassino_money = 1000
 rotation_count = 0
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
@@ -61,6 +62,9 @@ CASSINO_PLAY = 90
 CASSINO_RAISE = 91
 CASSINO_LOWER = 92
 
+CASSINO_MONEY = 1
+CASSINO_BET = 0
+
 #Tipos de colocação de figura
 PREVIEW_FIGURE = False
 ACTIVATE_FIGURE = True
@@ -72,6 +76,7 @@ LIFE_BUTTONS = range(13,16)
 CLICKABLE_BUTTONS = range(1,16)
 NUMBER_BOXES = range(22,25)
 GENERATE_BUTTON = range(17,20)
+CASSINO_BUTTONS = range(90, 93)
 
 # Tipos de cursor
 CURSOR_FREE = 0
@@ -102,6 +107,9 @@ IMG_SPEED = pygame.image.load("images/icon_speed.png")
 IMG_ROTATION = pygame.image.load("images/rotation.png")
 IMG_LOGO = pygame.image.load("images/logo.png")
 
+IMG_RAISE = pygame.image.load("images/raise.png")
+IMG_LOWER = pygame.image.load("images/lower.png")
+IMG_BET = pygame.image.load("images/bet.png")
 
 # Classes
 '''
@@ -181,7 +189,7 @@ class Button:
 			slotCol = (self.slot-1)%2
 			self.x = screen.endX + int(0.4 * self.size) + slotCol * int(self.size * 1.2)
 			self.y = screen.originY + slotRow * int(self.size * (1 + 1/6))
-		elif self.action in CONFIG_BUTTONS:
+		elif self.action in CONFIG_BUTTONS or self.action in CASSINO_BUTTONS:
 			self.size = int(screen.actualHeight/12)
 			slotCol = self.slot-13
 			self.x = screen.originX + slotCol * int(self.size * 1.2)
@@ -303,6 +311,8 @@ class Screen:
 		self.sliders = []
 		self.numberBoxes = []
 		self.floatingTexts = []
+		self.cassinoTexts = []
+		self.cassinoButtons = []
 		self.update(width,height)
 
 	def size(self):
@@ -339,6 +349,13 @@ class Screen:
    
 		for ft in self.floatingTexts:
 			ft.updatePos()
+   
+		if model.mode == "cassino":
+			for bt in self.cassinoButtons:
+				bt.updatePos()
+
+			for ft in self.cassinoTexts:
+				ft.updatePos()
   
 	def addButton(self, newButton):
 		self.buttons.append(newButton)
@@ -351,11 +368,39 @@ class Screen:
   
 	def addFloatingText(self, newFloatingText):
 		self.floatingTexts.append(newFloatingText)
+  
+	def addCassinoButton(self, newButton):
+		self.cassinoButtons.append(newButton)
+  
+	def addCassinoText(self, newText):
+		self.cassinoTexts.append(newText)
 
 
 # Funções
+
+def waitToBet(qtSteps):
+	while(qtSteps > 0):
+		board.update(True)
+		qtSteps -= 1
+
+def cassinoBet():
+	global model, board, screen
+	moneyBet = int(screen.cassinoTexts[CASSINO_BET].text)
+	myMoney = int(screen.cassinoTexts[CASSINO_MONEY].text)
+	myMoney -= moneyBet
+	screen.cassinoTexts[CASSINO_BET].text = str(min(myMoney,moneyBet))
+	screen.cassinoTexts[CASSINO_MONEY].text = str(myMoney)
+ 
+	#Agora você apostou $moneyBet reais. Vamos ver o que aconteceu:
+	launchEventOnce(GENERATE_BOARD)
+	waitToBet(60)
+	li = NP.random.randint(0,board.boardDims()[0])
+	co = NP.random.randint(0,board.boardDims()[1])
+	paintTile(li,co,SICK_CELL)
+
 def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
-	global board, screen
+	global board, screen, model
+	print(model.dead_layer.data[0][0])
 
 	#Define variáveis relevantes: tamanho de um tile e borda dele
 	gridSize = board.boardDims()
@@ -392,6 +437,9 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
 		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
 		if bt.selected:
 			surface.blit(pygame.transform.scale(IMG_BORDER, (bt.size, bt.size)), (bt.x, bt.y))
+   
+	for bt in screen.cassinoButtons:
+		surface.blit(pygame.transform.scale(bt.image, (bt.size, bt.size)), (bt.x, bt.y))
 
 	coordx=screen.originX + screen.sliders[0].width_sr
 	coordy=screen.endY + int(2*screen.sliders[0].height_sr)
@@ -405,6 +453,10 @@ def drawCurrentGame(surface): #Desenha o estado atual da simulação na tela
   
 	for ft in screen.floatingTexts:
 		ft.draw(surface)
+  
+	if model.mode == "cassino":
+		for ft in screen.cassinoTexts:
+			ft.draw(surface)
 
 #Função para executar um evento que ocorre de forma imediata, por exemplo, pausar o jogo
 def launchEventOnce(type):
@@ -428,6 +480,20 @@ def launchEventOnce(type):
 	elif type == ROTATION:
 		global rotation_count
 		rotation_count += 1
+	elif type == CASSINO_RAISE:
+		currMoney = int(screen.cassinoTexts[CASSINO_MONEY].text)
+		currBet = int(screen.cassinoTexts[CASSINO_BET].text)
+		if(currMoney > currBet):
+			currBet = min(2*currBet, currMoney)
+			screen.cassinoTexts[CASSINO_BET].text = str(currBet)
+	elif type == CASSINO_LOWER:
+		currMoney = int(screen.cassinoTexts[CASSINO_MONEY].text)
+		currBet = int(screen.cassinoTexts[CASSINO_BET].text)
+		if(currBet > 1):
+			currBet = max(currBet//2, 1)
+			screen.cassinoTexts[CASSINO_BET].text = str(currBet)
+	elif type == CASSINO_PLAY:
+		cassinoBet()
 
 #Pinta o quadrado de posição i,j, matando ou revivendo a célula, de acordo com a ocasião necessária
 def paintTile(i,j,type):
@@ -452,9 +518,7 @@ def paintTile(i,j,type):
 		model.dead_layer.set_cell((i, j), PERM_DEAD)
 
 def rotate(lista, rotation):
-
 	translation = [lista[0][0], lista[0][1]]
-
 	for i in lista: # Translação da figura para a origem
 		i[0] -= translation[0]
 		i[1] -= translation[1]
@@ -481,7 +545,6 @@ def modulo_board(lista):
 	for i in lista:
 		i[0], i[1] = i[0] % board.rows, i[1] % board.cols
 	return lista
-
 
 #Pinta uma figura existente na tela, ou prevê sua posição caso ainda não tenha sido ativado o evento
 def setTileStates(i,j,type,setmode):
@@ -576,6 +639,11 @@ def runGame():
 				if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 					cursorType = CURSOR_AIM
 					break
+			if model.mode == "cassino":
+				for bt in screen.cassinoButtons:
+					if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
+						cursorType = CURSOR_AIM
+						break
 				
 
 		#Ativamente define o cursor correto
@@ -638,6 +706,11 @@ def runGame():
 								screen.buttons[grabType-1].selected = True
 							break
 						else: #Botões de ativação imediata, como pause
+							launchEventOnce(bt.action)
+       
+				if model.mode == "cassino":
+					for bt in screen.cassinoButtons:
+						if bt.x <= mousePos[0] <= bt.x + bt.size and bt.y <= mousePos[1] <= bt.y + bt.size:
 							launchEventOnce(bt.action)
 
 				#Se foi clicado com um botão ativado, ou coloca uma figura, ou altera o paintMode, que segue ativado até soltar o botão
@@ -794,13 +867,13 @@ def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colun
   
 	#Utilidades do cassino
 	if model.mode == "cassino":
-		screen.addFloatingText(Floating_Text(" Apostando:   R$",60))
-		screen.addFloatingText(Floating_Text("1000",72))
-		screen.addFloatingText(Floating_Text("Saldo:   R$",65))
-		screen.addFloatingText(Floating_Text("1000",73))
-		screen.addButton(Button(REVIVE_CELL,13,IMG_ALIVECELL))
-		screen.addButton(Button(KILL_CELL,14,IMG_DEADCELL))
-		screen.addButton(Button(KILL_EVER,15,IMG_DEADPERMANENTE))
+		screen.addCassinoText(Floating_Text("1",72))
+		screen.addCassinoText(Floating_Text("1024",73))
+		screen.addCassinoText(Floating_Text(" Apostando:   R$",60))
+		screen.addCassinoText(Floating_Text("Saldo:   R$",65))
+		screen.addCassinoButton(Button(CASSINO_PLAY,13,IMG_BET))
+		screen.addCassinoButton(Button(CASSINO_RAISE,14,IMG_RAISE))
+		screen.addCassinoButton(Button(CASSINO_LOWER,15,IMG_LOWER))
 
 	screen.addSlider(Slider_Button())
 	runGame()
@@ -874,7 +947,7 @@ def criar_tela_inicial():
 			linha=24
 			coluna=40
 
-		generateConwayGame(isRandom = False, modo = tipo_jogo, linhas=linha,  colunas=coluna )
+		generateConwayGame(isRandom = False, modo = tipo_jogo, linhas=linha,  colunas=coluna)
   
 	btn_iniciar = tk.Button(janela, text="Iniciar Jogo", font=("Fixedsys", 20), bg="green", fg="white", command=iniciar_jogo)
 	btn_iniciar.place(x=640 - 216/2, y=310)
