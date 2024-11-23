@@ -2,7 +2,8 @@
 import random
 import pygame
 import os
-
+import tkinter as tk
+from PIL import Image, ImageTk
 # Dependências no projeto
 import model as conwayModel
 
@@ -94,6 +95,8 @@ IMG_GENERATEBOARD = pygame.image.load("images/generateBoard.png")
 IMG_CLEARBOARD = pygame.image.load("images/clearBoard.png")
 IMG_SPEED = pygame.image.load("images/icon_speed.png")
 IMG_ROTATION = pygame.image.load("images/rotation.png")
+IMG_LOGO = pygame.image.load("images/logo.png")
+
 
 # Classes
 '''
@@ -741,11 +744,11 @@ def runGame():
 
 	pygame.quit()
 
-def generateConwayGame(isRandom = False):
+def generateConwayGame(isRandom = False, modo= "deterministic", linhas=45, colunas=80 ):
 	#Tabuleiro inicial
 	global model, board, screen
 	pygame.init()
-	model = conwayModel.GameOfLifeModel(rows=45,cols=80)
+	model = conwayModel.GameOfLifeModel(rows=linhas,cols=colunas, mode= modo)
 	if isRandom:
 		model.randomize(0.50)
 
@@ -790,4 +793,83 @@ def generateConwayGame(isRandom = False):
 
 	runGame()
 
-generateConwayGame(isRandom=False)
+
+def criar_tela_inicial():
+	janela = tk.Tk()
+	janela.title("Jogo da Vida - Tela Inicial")
+	janela.geometry("1280x720")
+	janela.resizable(False, False)
+
+	# Adicionando um canvas para a imagem de fundo
+	canvas = tk.Canvas(janela, width=1280, height=720)
+	canvas.pack(fill="both", expand=True)
+
+	# Carregando a imagem de fundo
+	imagem_fundo = Image.open("images/logo.png")
+	imagem_fundo = imagem_fundo.resize((1280, 720), Image.Resampling.LANCZOS)
+	fundo = ImageTk.PhotoImage(imagem_fundo)
+
+	# Exibindo a imagem no canvas
+	canvas.create_image(0, 0, image=fundo, anchor="nw")
+
+	# Adicionando widgets diretamente sobre o canvas
+	titulo = tk.Label(janela, text="Bem-vindo ao Jogo da Vida", font=("Arial", 20, "bold"), bg="#FF4040")
+	titulo.place(x=450, y=20)
+
+	tipo_jogo_var = tk.StringVar(value="deterministic")
+
+	tipo_jogo_frame = tk.Frame(janela, bg="#FF4040")
+	tipo_jogo_frame.place(x=550, y=100)
+
+	tk.Label(tipo_jogo_frame, text="Opção de Jogo:", font=("Arial", 12), bg = "#FF4040").pack(anchor="w")
+
+	rb_prob = tk.Radiobutton(tipo_jogo_frame, text="Probabilístico", variable=tipo_jogo_var, value="probabilistic", font=("Arial", 12), bg="#FF4040")
+	rb_deter = tk.Radiobutton(tipo_jogo_frame, text="Determinístico", variable=tipo_jogo_var, value="deterministic", font=("Arial", 12), bg="#FF4040")
+	rb_prob.pack(anchor="w")
+	rb_deter.pack(anchor="w")
+
+	tamanho_tabuleiro_var = tk.StringVar(value="Medio")
+
+	tabuleiro_frame = tk.Frame(janela, bg="#FF4040")
+	tabuleiro_frame.place(x=540, y=200)
+
+	tk.Label(tabuleiro_frame, text="Opções de Tabuleiro:", font=("Arial", 12), bg="#FF4040").pack(anchor="w")
+
+	rb_pequeno = tk.Radiobutton(tabuleiro_frame, text="Pequeno", variable=tamanho_tabuleiro_var, value="Pequeno", font=("Arial", 12), bg="#FF4040")
+	rb_medio = tk.Radiobutton(tabuleiro_frame, text="Médio", variable=tamanho_tabuleiro_var, value="Medio", font=("Arial", 12), bg="#FF4040")
+	rb_grande = tk.Radiobutton(tabuleiro_frame, text="Grande", variable=tamanho_tabuleiro_var, value="Grande", font=("Arial", 12), bg="#FF4040")
+	rb_pequeno.pack(anchor="w")
+	rb_medio.pack(anchor="w")
+	rb_grande.pack(anchor="w")
+
+	def iniciar_jogo():
+		# Obtém as opções selecionadas
+		tipo_jogo = tipo_jogo_var.get()
+		tamanho_tabuleiro = tamanho_tabuleiro_var.get()
+
+		print(tipo_jogo_var)
+		# Exibe no console (substitua por chamada à lógica do jogo)
+		print(f"Jogo iniciado com opção: {tipo_jogo}, Tabuleiro: {tamanho_tabuleiro}")
+		linha, coluna=  0,0
+		if tamanho_tabuleiro == "Medio":
+			linha= 36
+			coluna= 60
+		elif tamanho_tabuleiro == "Grande":
+			linha= 60
+			coluna=100
+		else:
+			linha=24
+			coluna=40
+
+		generateConwayGame(isRandom = False, modo = tipo_jogo, linhas=linha,  colunas=coluna )
+
+	btn_iniciar = tk.Button(janela, text="Iniciar Jogo", font=("Arial", 14), bg="green", fg="white", command=iniciar_jogo)
+	btn_iniciar.place(x=560, y=330)
+
+	# Mantém a imagem de fundo no escopo para evitar garbage collection
+	canvas.image = fundo
+	janela.mainloop()
+
+# Chamar a função para exibir a janela inicial
+criar_tela_inicial()
+
