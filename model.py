@@ -5,7 +5,7 @@ from mesa.space import PropertyLayer
 from scipy.signal import convolve2d
 
 class GameOfLifeModel(Model):
-	def __init__(self, rows=10, cols=10, mode="probabilistic", rounds=10):
+	def __init__(self, rows=10, cols=10, mode="deterministic"):
 		super().__init__()
 		# Inicializa a camada de propriedades para os estados das células
 		self.cell_layer = PropertyLayer("cells", rows, cols, False, dtype=bool)
@@ -29,10 +29,11 @@ class GameOfLifeModel(Model):
 		self.vizInf = 2 #Sobrevive se quantidade de vizinho estiver em [vizInf, vizSup]
 		self.vizSup = 3 
 		self.vizRen = 3 #Quantidade de vizinhos para renascer
-		self.mode = mode  # 'deterministic' or 'probabilistic'
-		self.rounds = rounds  # Number of rounds to run
+		self.mode = mode  # 'deterministic' or 'probabilistic' or 'cassino'
+		if mode == 'cassino':
+			self.vizSup = 5	
 
-	def step(self):
+	def step(self):		
 		# Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
 		# Essa configuração nos permite contar os vizinhos vivos de cada célula ao aplicar a convolução.
 		kernel = np.array([[1, 1, 1],
@@ -90,6 +91,9 @@ class GameOfLifeModel(Model):
 		# Define aleatoriamente células como vivas
 		self.cell_layer.data = np.random.choice([True, False], size=(self.rows, self.cols), p=[self.alive_fraction, 1 - self.alive_fraction])
 		self.datacollector.collect(self)
+  
+	def calcPercentage(self):
+		return (np.sum(self.dead_layer.data == 1)/np.sum(self.cell_layer.data == False))
   
 	def updateRule(self, id, val):
 		if id == 0:
