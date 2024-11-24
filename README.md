@@ -1,7 +1,23 @@
 # Projeto Conway Game of Life
 
 ## Instruções de uso para o usuário
-Ainda não há instruções para o uso do projeto.
+
+### Instalação
+1. Instale o *Python* e o *Git* no seu computador.
+2. Instale as depedências de bibliotecas: *Mesa*, *Scipy*, *Pygame* e *Pillow*
+	```bash
+	pip install mesa
+	```
+	```bash
+	pip install scipy
+	```
+ 	```bash
+	pip install pygame
+	```
+  	```bash
+	pip install pillow
+	```
+3. Execute o arquivo python windowVisualization.py e aproveite a simuação!
 
 ## Instruções de uso para o colaborador
 
