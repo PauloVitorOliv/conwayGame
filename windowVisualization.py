@@ -17,8 +17,8 @@ BORDER_COLOR = (0,0,0) #Cor da borda entre células
 ALIVE_COLOR = (128,255,128) #Cor de uma célula viva
 SELECTED_COLOR = (240,240,70) #Cor de uma célula selecionada*
 DEAD_COLOR = (255,64,64) #Cor de uma célula morta
-DEAD_PERMANENTE_COLOR = (128,128,128)
-INFECTED_COLOR = (160,50,160)
+DEAD_PERMANENTE_COLOR = (56,11,11) #Cor de uma célula permanentemente morta
+INFECTED_COLOR = (160,50,160) #Cor de uma célula infectada
 
 # Variáveis Globais
 boardPaused = False
@@ -28,8 +28,10 @@ screen = None #Instância de Screen
 used_font = None #Fonte a ser usada
 rotation_count = 0 #Quantas rotações a figura está da sua posição original
 rounds = 0 #Quantos rounds faltam (apenas cassino)
+maxRounds = 0 #Máximo de rounds (apenas cassino)
 guess = 0 #Quantos % das células mortas serão infectadas (apenas cassino)
-currentBet = 0 #Quanto você apostou na última jogada
+currentBet = 0 #Quanto você apostou na última jogada (apenas cassino)
+prevPercentage = -1 #Usando enquanto calcula porcentagem (apenas cassino)
 
 # * Células selecionadas são células que tem algum estado entre vivo ou morto, mas na simulação aparecem de outra cor pois o usuário está prestes a inserir alguma figura especial que cobre essa célula
 
@@ -156,14 +158,19 @@ class Board:
 		return [self.rows, self.cols]
 
 	def update(self, step = True):
-		global boardPaused, model, rounds, guess, currentBet
+		global boardPaused, model, rounds, guess, currentBet, prevPercentage, maxRounds
 		if step and not boardPaused: #Atualizações de estado no modelo exigem o jogo despausado
 			model.step()
 			if model.mode == "cassino" and rounds > 0:
-				rounds -= 1
-				if rounds == 0:	
-					resp = model.calcPercentage()*100
-					screen.cassinoTexts[CASSINO_MONEY].text = str(int(screen.cassinoTexts[CASSINO_MONEY].text) + int(currentBet*10*pow(0.6,abs(resp - guess))))
+				maxRounds -= 1
+				newP = model.calcPercentage()*100
+				if newP == prevPercentage:
+					rounds -= 1
+				prevPercentage = newP
+				if rounds == 0 or maxRounds == 0:
+					screen.cassinoTexts[CASSINO_MONEY].text = str(int(screen.cassinoTexts[CASSINO_MONEY].text) + int(currentBet*10*pow(0.7,abs(newP - guess))))
+					prevPercentage = -1
+					rounds = 0; maxRounds = 0
 					
 		for i in range(self.rows):
 			for j in range(self.cols):
@@ -402,7 +409,7 @@ def waitToBet(qtSteps):
 		qtSteps -= 1
 
 def cassinoBet():
-	global model, board, screen, currentBet, guess, rounds
+	global model, board, screen, currentBet, guess, rounds, maxRounds
 	moneyBet = int(screen.cassinoTexts[CASSINO_BET].text)
 	myMoney = int(screen.cassinoTexts[CASSINO_MONEY].text)
 	if myMoney < moneyBet:
@@ -420,7 +427,8 @@ def cassinoBet():
 
 	launchEventOnce(GENERATE_BOARD)
 	waitToBet(60)
-	rounds = 2*board.boardDims()[0] + 30
+	rounds = 5
+	maxRounds = board.boardDims()[0]*3 + 40
  
 	li = NP.random.randint(0,board.boardDims()[0])
 	co = NP.random.randint(0,board.boardDims()[1])
