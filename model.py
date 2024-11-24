@@ -31,9 +31,9 @@ class GameOfLifeModel(Model):
 		self.vizRen = 3 #Quantidade de vizinhos para renascer
 		self.mode = mode  # 'deterministic' or 'probabilistic' or 'cassino'
 		if mode == 'cassino':
-			self.vizSup = 5
+			self.vizSup = 5	
 
-	def step(self):
+	def step(self):		
 		# Define um kernel para contar os vizinhos. O kernel tem 1s ao redor da célula central (que é 0).
 		# Essa configuração nos permite contar os vizinhos vivos de cada célula ao aplicar a convolução.
 		kernel = np.array([[1, 1, 1],
@@ -91,6 +91,9 @@ class GameOfLifeModel(Model):
 		# Define aleatoriamente células como vivas
 		self.cell_layer.data = np.random.choice([True, False], size=(self.rows, self.cols), p=[self.alive_fraction, 1 - self.alive_fraction])
 		self.datacollector.collect(self)
+  
+	def calcPercentage(self):
+		return (np.sum(self.dead_layer.data == 1)/np.sum(self.cell_layer.data == False))
   
 	def updateRule(self, id, val):
 		if id == 0:
