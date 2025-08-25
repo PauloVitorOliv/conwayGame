@@ -6,16 +6,16 @@
 1. Instale o *Python* e o *Git* no seu computador.
 2. Instale as depedências de bibliotecas: *Mesa*, *Scipy*, *Pygame* e *Pillow*
 	```bash
-	pip install mesa
+	python -m pip install mesa
 	```
 	```bash
-	pip install scipy
+	python -m pip install scipy
 	```
  	```bash
-	pip install pygame
+	python -m pip install pygame
 	```
   	```bash
-	pip install pillow
+	python -m pip install pillow
 	```
 3. Execute o arquivo python windowVisualization.py e aproveite a simuação!
 
@@ -48,12 +48,12 @@
 ### Obter dependências
 1. Para baixar as dependências, execute também no terminal:
 	```bash
-	pip install mesa
+	python -m pip install mesa
 	```
 2. E também:
 	```bash
-	pip install scipy
-	pip install pygame
+	python -m pip install scipy
+	python -m pip install pygame
 	```
 
 ### Criar seu próprio Branch
